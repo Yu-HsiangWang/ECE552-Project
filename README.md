@@ -49,6 +49,7 @@
 ## 學習資料
 
 - `Learning/01_learning_order.md`：剛接手的人從這裡開始，照五個步驟學。
+- `Learning/02_hawkeye_paper_vs_crc2.md`：論文和作者 CRC2 程式碼的差異，以及我們照哪個做。
 
 ## Proposal
 
@@ -63,3 +64,8 @@
 - `gem5/scripts/run_spec.sh <bench> <policy> [fast_forward] [warmup] [measure]`：在 EC2 上跑一個 SPEC2017 測項，輸出到 `~/hawkeye/out/<bench>/<policy>[_$TAG]/`。
 - 10-29 實測：mcf 在 O3CPU 上約每秒 25 萬條指令，6000 萬條約 5 分鐘，記憶體約 115 MB（可同時跑 7 組）。只暖身 1000 萬條時 LLC miss 率 97.6%，還在初始化階段，所以要 fast-forward。
 - EC2 上的路徑：`~/hawkeye/configs`、`~/hawkeye/scripts`（從這裡 scp 上去）。
+
+## Hawkeye 實作（`gem5/src/mem/cache/replacement_policies/hawkeye_rp.*`）
+
+- `gem5/install_hawkeye.py <gem5 目錄>`：把 Hawkeye 複製進 gem5、註冊 `HawkeyeRP` 與 debug flag `Hawkeye`，之後 `scons build/X86/gem5.opt`。
+- 設定檔 `--rp=Hawkeye` 會自動依 LLC 大小設定 set 數、OPTgen 長度（8×ways）與容量（ways − 2）。

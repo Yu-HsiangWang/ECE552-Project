@@ -42,6 +42,7 @@ POLICIES = {
     "BRRIP": BRRIPRP,
     "DRRIP": DRRIPRP,
     "SHiP": SHiPPCRP,
+    "Hawkeye": HawkeyeRP,
 }
 if args.rp not in POLICIES:
     m5.fatal(f"unknown --rp {args.rp}; choose from {sorted(POLICIES)}")
@@ -113,15 +114,20 @@ system.cpu.mmu.connectWalkerPorts(system.l2bus.cpu_side_ports,
 system.l3bus = L2XBar()
 system.l2cache.mem_side = system.l3bus.cpu_side_ports
 system.llc = LLCache()
+from m5.util.convert import toMemorySize
+
+llc_lines = toMemorySize(args.llc_size) // 64
 llc_rp = POLICIES[args.rp]()
 if args.rp == "DRRIP":
     # Set dueling with 32 sampled sets per policy, as in the RRIP paper
     # (see the DRRIPRP comment in ReplacementPolicies.py).
-    from m5.util.convert import toMemorySize
-
-    num_lines = toMemorySize(args.llc_size) // 64
-    llc_rp.constituency_size = num_lines // (32 * args.llc_assoc)
+    llc_rp.constituency_size = llc_lines // (32 * args.llc_assoc)
     llc_rp.team_size = args.llc_assoc
+elif args.rp == "Hawkeye":
+    llc_rp.num_sets = llc_lines // args.llc_assoc
+    # 8x history; OPT may keep ways - 2 lines, as in the CRC2 code.
+    llc_rp.optgen_vector_size = 8 * args.llc_assoc
+    llc_rp.optgen_capacity = args.llc_assoc - 2
 system.llc.replacement_policy = llc_rp
 system.llc.cpu_side = system.l3bus.mem_side_ports
 
