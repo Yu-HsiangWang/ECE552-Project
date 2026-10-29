@@ -49,3 +49,11 @@
 ## Proposal
 
 - `Proposal/ECE552_Hawkeye_Proposal.tex`（IEEEtran，照老師 98 分範例 Cyclone proposal 的章節），正文 2 頁＋參考文獻第 3 頁。
+
+## gem5 設定與腳本（`gem5/`）
+
+- `gem5/configs/hk_se.py`：O3CPU＋三層快取（L1 32KB 4-way、L2 256KB 8-way、LLC 2MB 16-way，照 Hawkeye 原文 Table 2），
+  `--rp` 選 LLC 替換策略（LRU、Random、SRRIP、BRRIP、DRRIP、SHiP），`--warmup`／`--measure` 指令數（暖身後清零統計）。
+  DRRIP 的 set dueling 參數依 LLC 大小自動計算（每個策略 32 個 dueling set）。
+- `gem5/scripts/run_spec.sh <bench> <policy> [warmup] [measure]`：在 EC2 上跑一個 SPEC2017 測項，輸出到 `~/hawkeye/out/<bench>/<policy>/`。
+- EC2 上的路徑：`~/hawkeye/configs`、`~/hawkeye/scripts`（從這裡 scp 上去）。
