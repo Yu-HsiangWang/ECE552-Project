@@ -69,3 +69,8 @@
 
 - `gem5/install_hawkeye.py <gem5 目錄>`：把 Hawkeye 複製進 gem5、註冊 `HawkeyeRP` 與 debug flag `Hawkeye`，之後 `scons build/X86/gem5.opt`。
 - 設定檔 `--rp=Hawkeye` 會自動依 LLC 大小設定 set 數、OPTgen 長度（8×ways）與容量（ways − 2）。
+
+## 參考模型（`tools/hawkeye_ref.py`）
+
+- `python3 tools/hawkeye_ref.py demo`：一個 3-way set 反覆存取 A B C D，並排印出 LRU、Belady OPT、OPTgen 的每一步（教學用）。
+- `python3 tools/hawkeye_ref.py check <gem5 log>`：讀 `--debug-flags=Hawkeye` 的 gem5 輸出，用 Python 重算 OPTgen 並逐筆比對標籤，另外算同一串 LLC 存取在 LRU 與 Belady OPT 下的 miss 率。
