@@ -46,6 +46,10 @@
 - 連線方式與私鑰在 `local/`（不進 git）。
 - 課程的 `gem5_se.py` 是 MinorCPU＋兩層快取（L2 256KB），Hawkeye 需要 O3CPU＋三層（2MB LLC）設定。
 
+## 學習資料
+
+- `Learning/01_learning_order.md`：剛接手的人從這裡開始，照五個步驟學。
+
 ## Proposal
 
 - `Proposal/ECE552_Hawkeye_Proposal.tex`（IEEEtran，照老師 98 分範例 Cyclone proposal 的章節），正文 2 頁＋參考文獻第 3 頁。
