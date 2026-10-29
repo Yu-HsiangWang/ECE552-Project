@@ -74,3 +74,13 @@
 
 - `python3 tools/hawkeye_ref.py demo`：一個 3-way set 反覆存取 A B C D，並排印出 LRU、Belady OPT、OPTgen 的每一步（教學用）。
 - `python3 tools/hawkeye_ref.py check <gem5 log>`：讀 `--debug-flags=Hawkeye` 的 gem5 輸出，用 Python 重算 OPTgen 並逐筆比對標籤，另外算同一串 LLC 存取在 LRU 與 Belady OPT 下的 miss 率。
+
+## 微基準（`tools/microbench/`）
+
+- `llc_patterns.c`：`fit`（1 MB，放得下）、`thrash`（3 MB，LRU 全 miss）、`mix`（1 MB 重用陣列＋24 MB 串流），每種印 checksum 供比對程式結果。
+- `run_micro.sh`：在 EC2 上用六種策略各跑三種模式，輸出到 `~/hawkeye/micro/<pattern>/<policy>/`。
+
+## 進度紀錄
+
+- 10-29：hk_se.py 支援 fast-forward；mcf LRU 跳過 10 億條後 LLC miss 率 56%（MPKI 27），跳過 30 億條後 51%（MPKI 14）；atomic 約每秒 100 萬條。
+- 10-29：Hawkeye 編進 gem5（重編 4 分鐘），hello world 通過；`noPCAccesses = 0`，確認 PC 有傳到 LLC（M1 完成）。
