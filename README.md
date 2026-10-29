@@ -57,7 +57,9 @@
 ## gem5 設定與腳本（`gem5/`）
 
 - `gem5/configs/hk_se.py`：O3CPU＋三層快取（L1 32KB 4-way、L2 256KB 8-way、LLC 2MB 16-way，照 Hawkeye 原文 Table 2），
-  `--rp` 選 LLC 替換策略（LRU、Random、SRRIP、BRRIP、DRRIP、SHiP），`--warmup`／`--measure` 指令數（暖身後清零統計）。
+  `--rp` 選 LLC 替換策略（LRU、Random、SRRIP、BRRIP、DRRIP、SHiP）。
+  `--fast-forward` 先用 atomic CPU 跑過初始化（快取照樣被存取），再切到 O3CPU；`--warmup`／`--measure` 指令數（暖身後清零統計）。
   DRRIP 的 set dueling 參數依 LLC 大小自動計算（每個策略 32 個 dueling set）。
-- `gem5/scripts/run_spec.sh <bench> <policy> [warmup] [measure]`：在 EC2 上跑一個 SPEC2017 測項，輸出到 `~/hawkeye/out/<bench>/<policy>/`。
+- `gem5/scripts/run_spec.sh <bench> <policy> [fast_forward] [warmup] [measure]`：在 EC2 上跑一個 SPEC2017 測項，輸出到 `~/hawkeye/out/<bench>/<policy>[_$TAG]/`。
+- 10-29 實測：mcf 在 O3CPU 上約每秒 25 萬條指令，6000 萬條約 5 分鐘，記憶體約 115 MB（可同時跑 7 組）。只暖身 1000 萬條時 LLC miss 率 97.6%，還在初始化階段，所以要 fast-forward。
 - EC2 上的路徑：`~/hawkeye/configs`、`~/hawkeye/scripts`（從這裡 scp 上去）。

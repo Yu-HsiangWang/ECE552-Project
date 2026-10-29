@@ -1,15 +1,16 @@
 #!/bin/bash
 # Run one SPEC CPU2017 speed benchmark on the Hawkeye config with one LLC policy.
 #
-# Usage: run_spec.sh <benchmark> <policy> [warmup_insts] [measure_insts]
-#   e.g. run_spec.sh 605.mcf_s DRRIP 10000000 50000000
-# Output: ~/hawkeye/out/<benchmark>/<policy>/{stats.txt,config.ini,log.txt}
+# Usage: run_spec.sh <benchmark> <policy> [fast_forward] [warmup] [measure]
+#   e.g. run_spec.sh 605.mcf_s DRRIP 1000000000 10000000 50000000
+# Output: ~/hawkeye/out/<benchmark>/<policy>[_$TAG]/{stats.txt,config.ini,log.txt}
 
 set -e
 BENCH=$1
 RP=$2
-WARMUP=${3:-10000000}
-MEASURE=${4:-50000000}
+FF=${3:-0}
+WARMUP=${4:-10000000}
+MEASURE=${5:-50000000}
 
 GEM5=~/gem5/build/X86/gem5.opt
 CONFIG=~/hawkeye/configs/hk_se.py
@@ -26,8 +27,9 @@ case $BENCH in
 esac
 
 BINARY=$SPEC_DIR/build/build_base_mytest-m64.0000/$EXE_NAME
-OUT=~/hawkeye/out/$BENCH/$RP
+# Optional TAG env var keeps runs with different settings apart.
+OUT=~/hawkeye/out/$BENCH/$RP${TAG:+_$TAG}
 mkdir -p "$OUT"
 cd "$RUN_DIR"
 $GEM5 -q --outdir="$OUT" "$CONFIG" --cmd="$BINARY" --options="$OPTS" \
-    --rp="$RP" --warmup="$WARMUP" --measure="$MEASURE" > "$OUT/log.txt" 2>&1
+    --rp="$RP" --fast-forward="$FF" --warmup="$WARMUP" --measure="$MEASURE" > "$OUT/log.txt" 2>&1
