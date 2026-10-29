@@ -1,0 +1,8 @@
+# secrets and local-only notes (never commit)
+*.pem
+local/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.synctex.gz
