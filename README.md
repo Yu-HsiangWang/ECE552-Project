@@ -61,6 +61,9 @@
   `--rp` 選 LLC 替換策略（LRU、Random、SRRIP、BRRIP、DRRIP、SHiP）。
   `--fast-forward` 先用 atomic CPU 跑過初始化（快取照樣被存取），再切到 O3CPU；`--warmup`／`--measure` 指令數（暖身後清零統計）。
   DRRIP 的 set dueling 參數依 LLC 大小自動計算（每個策略 32 個 dueling set）。
+- `gem5/scripts/build_spec.sh <bench>...`：照課程腳本的方式編 SPEC 執行檔（gcc_s 的執行檔叫 sgcc）。
+- `gem5/scripts/run_all_spec.sh [ff] [warmup] [measure] [tag]`：6 個測項 × 6 種策略，同時跑 7 組。
+- `tools/collect_stats.py <out> <tag>`：整理 LLC MPKI、IPC、相對 LRU 的 miss 減少與加速比。
 - `gem5/scripts/run_spec.sh <bench> <policy> [fast_forward] [warmup] [measure]`：在 EC2 上跑一個 SPEC2017 測項，輸出到 `~/hawkeye/out/<bench>/<policy>[_$TAG]/`。
 - 10-29 實測：mcf 在 O3CPU 上約每秒 25 萬條指令，6000 萬條約 5 分鐘，記憶體約 115 MB（可同時跑 7 組）。只暖身 1000 萬條時 LLC miss 率 97.6%，還在初始化階段，所以要 fast-forward。
 - EC2 上的路徑：`~/hawkeye/configs`、`~/hawkeye/scripts`（從這裡 scp 上去）。
@@ -85,3 +88,5 @@
 - 10-29：hk_se.py 支援 fast-forward；mcf LRU 跳過 10 億條後 LLC miss 率 56%（MPKI 27），跳過 30 億條後 51%（MPKI 14）；atomic 約每秒 100 萬條。
 - 10-29：Hawkeye 編進 gem5（重編 4 分鐘），hello world 通過；`noPCAccesses = 0`，確認 PC 有傳到 LLC（M1 完成）。
 - 10-30：微基準三種模式 × 六種策略全部符合預期，checksum 一致；OPTgen 9222 筆判斷與 Python 參考模型 0 不一致。詳見 `results/01_microbench_validation.md`。
+- 10-30：SPEC 測項選 mcf、omnetpp、xalancbmk、cactuBSSN、deepsjeng、xz。gcc 在 gem5 SE 模式下報 `/usr/include: not a directory` 而提早結束（系統呼叫模擬問題，同課程 README 說的 lbm），先排除。
+- 10-30 00:13 UTC：開始正式實驗（fast-forward 10 億、暖身 5000 萬、量測 2 億，36 組），預估約 3 小時。

@@ -23,9 +23,18 @@ case $BENCH in
     600.perlbench_s) OPTS="-I./lib checkspam.pl 2500 5 25 11 150 1 1 1 1" ;;
     602.gcc_s)       OPTS="gcc-pp.c -O5 -fipa-pta -o gcc-pp.opts-O5_-fipa-pta.s" ;;
     605.mcf_s)       OPTS="inp.in" ;;
+    607.cactuBSSN_s) OPTS="spec_ref.par" ;;
+    620.omnetpp_s)   OPTS="-c General -r 0" ;;
+    623.xalancbmk_s) OPTS="-v t5.xml xalanc.xsl" ;;
+    631.deepsjeng_s) OPTS="ref.txt" ;;
+    641.leela_s)     OPTS="ref.sgf" ;;
+    644.nab_s)       OPTS="3j1n 20140317 220" ;;
+    657.xz_s)        OPTS="cpu2006docs.tar.xz 6643 055ce243071129412e9dd0b3b69a21654033a9b723d874b2015c774fac1553d9713be561ca86f74e4f16f22e664fc17a79f30caa5ad2c04fbc447549c2810fae 1036078272 1111795472 4" ;;
     *) echo "no options recorded for $BENCH" >&2; exit 1 ;;
 esac
 
+# gcc_s builds its binary as sgcc.
+[ "$BENCH" = "602.gcc_s" ] && EXE_NAME=sgcc
 BINARY=$SPEC_DIR/build/build_base_mytest-m64.0000/$EXE_NAME
 # Optional TAG env var keeps runs with different settings apart.
 OUT=~/hawkeye/out/$BENCH/$RP${TAG:+_$TAG}
