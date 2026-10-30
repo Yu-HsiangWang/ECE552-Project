@@ -82,8 +82,8 @@ distances instead of a binary decision. We leave Mockingjay out of scope.
 implemented correctly in gem5?}
 \item \textbf{How do Hawkeye's LLC miss rate and IPC compare with LRU, DRRIP,
 and SHiP?}
-\item \textbf{How sensitive is Hawkeye to its hardware budget and to the LLC
-size?}
+\item \textbf{Why can Hawkeye reduce misses in access patterns where LRU and
+RRIP fail?}
 \end{itemize}
 
 %% ------------------------------------------------------------------
@@ -144,8 +144,8 @@ packet.
 \item \textbf{OPTgen and the Sampled Cache}: occupancy vectors and access
 history for the 64 sampled sets.
 \item \textbf{Hawkeye Predictor}: the 8K-entry table of 3-bit counters.
-\item \textbf{Requests without a PC}: prefetches and writebacks, which need a
-fixed signature.
+\item \textbf{Requests without a PC}: writebacks and other requests from the
+L2, which must not train the predictor.
 \item \textbf{Logs and statistics}: a debug flag that prints each decision.
 \end{itemize}
 
@@ -169,10 +169,11 @@ the miss rates match our expectations.
 \subsection{Performance Impact}
 
 Hawkeye will be compared with baseline policies that gem5 already provides,
-such as LRU, DRRIP, and SHiP, on SPEC CPU2017~\cite{spec17} benchmarks such as
-mcf, omnetpp, xalancbmk, and gcc. The comparison will focus on LLC misses per
-kilo-instruction (MPKI) and IPC across different LLC sizes and predictor sizes.
-We will also estimate the hardware cost from the storage of the added
+such as LRU, DRRIP, and SHiP. We will focus on memory-intensive SPEC
+CPU2017~\cite{spec17} benchmarks, where the LLC matters most, such as mcf,
+omnetpp, xalancbmk, and gcc. The comparison will focus on LLC misses per
+kilo-instruction (MPKI) and IPC, and we will repeat it for several LLC sizes. We
+will also estimate the hardware cost from the storage of the added
 structures.
 
 %% ------------------------------------------------------------------
@@ -189,7 +190,7 @@ OPTgen, the Sampled Cache, the predictor, and the replacement policy.
 \item \textbf{Milestone 3: Functional Validation (Week 3):} We will run the unit
 tests and test programs and fix any differences from the expected behavior.
 \item \textbf{Milestone 4: Performance Evaluation (Week 4):} We will run SPEC
-CPU2017 with every policy and perform the sensitivity studies.
+CPU2017 with every policy and repeat the runs for several LLC sizes.
 \item \textbf{Milestone 5: Final Evaluation and Reporting (Week 5):} We will
 analyze the results and write the final report and presentation.
 \end{itemize}
@@ -201,8 +202,8 @@ Vito will lead the design and implementation of Hawkeye in gem5, including
 OPTgen, the Sampled Cache, the predictor, and the replacement policy. Endong
 will design the validation plan, write the test programs and the script that
 computes the expected OPTgen decisions, and run the unit tests. Xiaotian will
-run the baseline and SPEC CPU2017 simulations, perform the sensitivity studies,
-and collect and plot the statistics. All three will analyze the results and
+run the baseline and SPEC CPU2017 simulations, repeat them for several LLC
+sizes, and collect and plot the statistics. All three will analyze the results and
 write the final report.
 
 %% ------------------------------------------------------------------
