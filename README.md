@@ -84,3 +84,4 @@
 
 - 10-29：hk_se.py 支援 fast-forward；mcf LRU 跳過 10 億條後 LLC miss 率 56%（MPKI 27），跳過 30 億條後 51%（MPKI 14）；atomic 約每秒 100 萬條。
 - 10-29：Hawkeye 編進 gem5（重編 4 分鐘），hello world 通過；`noPCAccesses = 0`，確認 PC 有傳到 LLC（M1 完成）。
+- 10-30：微基準三種模式 × 六種策略全部符合預期，checksum 一致；OPTgen 9222 筆判斷與 Python 參考模型 0 不一致。詳見 `results/01_microbench_validation.md`。
