@@ -34,14 +34,16 @@ case $BENCH in
     631.deepsjeng_s) OPTS="ref.txt" ;;
     641.leela_s)     OPTS="ref.sgf" ;;
     644.nab_s)       OPTS="3j1n 20140317 220" ;;
+    502.gcc_r)       OPTS="gcc-pp.c -O3 -finline-limit=0 -fif-conversion -fif-conversion2 -o gcc-pp.opts-O3_-finline-limit_0_-fif-conversion_-fif-conversion2.s" ;;
     531.deepsjeng_r) OPTS="ref.txt" ;;
     557.xz_r)        OPTS="cld.tar.xz 160 19cf30ae51eddcbefda78dd06014b4b96281456e078ca7c13e1c0c9e6aaea8dff3efb4ad6b0456697718cede6bd5454852652806a657bb56e07d61128434b474 59796407 61004416 6" ;;
     657.xz_s)        OPTS="cpu2006docs.tar.xz 6643 055ce243071129412e9dd0b3b69a21654033a9b723d874b2015c774fac1553d9713be561ca86f74e4f16f22e664fc17a79f30caa5ad2c04fbc447549c2810fae 1036078272 1111795472 4" ;;
     *) echo "no options recorded for $BENCH" >&2; exit 1 ;;
 esac
 
-# gcc_s builds its binary as sgcc.
+# gcc builds its binary as sgcc (speed) or cpugcc_r (rate).
 [ "$BENCH" = "602.gcc_s" ] && EXE_NAME=sgcc
+[ "$BENCH" = "502.gcc_r" ] && EXE_NAME=cpugcc_r
 BINARY=$SPEC_DIR/build/build_base_mytest-m64.0000/$EXE_NAME
 # Optional TAG env var keeps runs with different settings apart.
 OUT=~/hawkeye/out/$BENCH/$RP${TAG:+_$TAG}

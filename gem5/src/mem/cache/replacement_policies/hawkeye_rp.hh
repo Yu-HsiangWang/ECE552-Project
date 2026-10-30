@@ -112,6 +112,7 @@ class Hawkeye : public Base
         statistics::Scalar demandAccesses;
         statistics::Scalar noPCAccesses;
         statistics::Scalar writebacks;
+        statistics::Scalar cleanEvicts;
         statistics::Scalar sampledAccesses;
         statistics::Scalar optgenReuses;
         statistics::Scalar optgenHits;

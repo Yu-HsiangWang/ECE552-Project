@@ -2,7 +2,8 @@
 """Install the Hawkeye replacement policy into a gem5 v23 source tree.
 
 Copies hawkeye_rp.{hh,cc} and registers HawkeyeRP in ReplacementPolicies.py
-and the SConscript. Safe to run more than once.
+and the SConscript. Also fixes x86-64 newfstatat in SE mode (see below).
+Safe to run more than once.
 
 Usage: python3 install_hawkeye.py <gem5 dir> [<this repo's gem5 dir>]
 """
@@ -63,6 +64,18 @@ def main():
         assert "'HawkeyeRP'" in text and "hawkeye_rp.cc" in text
         sc.write_text(text)
     print("Hawkeye installed into", rp_dir)
+
+    # gem5 v23 serves x86-64 newfstatat with the generic Linux stat layout,
+    # so st_mode lands at the wrong offset. glibc's fstat uses newfstatat,
+    # opendir() then sees "not a directory", and omnetpp (NED folder scan)
+    # and gcc (include dirs) fail. The x86-64 layout is tgt_stat64.
+    tbl = gem5 / "src/arch/x86/linux/syscall_tbl64.cc"
+    old = '{ 262, "newfstatat", newfstatatFunc<X86Linux64> }'
+    new = '{ 262, "newfstatat", fstatat64Func<X86Linux64> }'
+    text = tbl.read_text()
+    if old in text:
+        tbl.write_text(text.replace(old, new))
+        print("patched newfstatat in", tbl)
 
 
 if __name__ == "__main__":

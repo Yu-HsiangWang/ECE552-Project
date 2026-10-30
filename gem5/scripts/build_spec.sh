@@ -12,6 +12,7 @@ SPEC=~/spec2017
 for BENCH in "$@"; do
     EXE=${BENCH#*.}
     [ "$BENCH" = "602.gcc_s" ] && EXE=sgcc
+    [ "$BENCH" = "502.gcc_r" ] && EXE=cpugcc_r
     BUILD_DIR=$SPEC/benchspec/CPU/$BENCH/build/build_base_mytest-m64.0000
     FLAGS=
     [[ $BENCH == *omnetpp* ]] && FLAGS="EXTRA_CXXFLAGS=-std=c++14"

@@ -26,6 +26,8 @@ Hawkeye::HawkeyeStats::HawkeyeStats(statistics::Group *parent)
              "Demand accesses whose request carries no PC"),
     ADD_STAT(writebacks, statistics::units::Count::get(),
              "Writeback insertions and hits (not trained)"),
+    ADD_STAT(cleanEvicts, statistics::units::Count::get(),
+             "CleanEvict notices from the upper cache (ignored)"),
     ADD_STAT(sampledAccesses, statistics::units::Count::get(),
              "Demand accesses to sampled sets, seen by OPTgen"),
     ADD_STAT(optgenReuses, statistics::units::Count::get(),
@@ -212,6 +214,14 @@ Hawkeye::update(const std::shared_ptr<ReplacementData>& replacement_data,
                 const PacketPtr pkt, bool hit)
 {
     auto data = std::static_pointer_cast<HawkeyeReplData>(replacement_data);
+
+    // gem5 looks up the tags for every packet, so a CleanEvict from the L2
+    // (the L2 dropped a clean copy) also lands here as a hit. It is not a
+    // program access: it must not train OPTgen or change the line's RRPV.
+    if (pkt->cmd == MemCmd::CleanEvict) {
+        stats.cleanEvicts++;
+        return;
+    }
 
     // Writebacks carry no PC and are not trained on, as in the CRC2 code.
     // A line inserted by a writeback starts as cache-averse.
