@@ -19,9 +19,9 @@ in gem5 and evaluates it on SPEC CPU2017. Hawkeye learns from Belady's optimal
 replacement algorithm. It reconstructs the decisions that the optimal policy
 would have made on past cache accesses and uses them to train a predictor that
 decides which cache lines to keep. We will validate each component with unit
-tests and logs, check the reconstructed decisions against an offline simulation
-of the optimal policy, and compare Hawkeye's miss rate and performance with the
-replacement policies that gem5 already provides, such as LRU, DRRIP, and SHiP.
+tests and logs, check that programs produce the same results as under LRU, and
+compare Hawkeye's miss rate and performance with the replacement policies that
+gem5 already provides, such as LRU, DRRIP, and SHiP.
 \end{abstract}
 
 %% ------------------------------------------------------------------
@@ -81,7 +81,7 @@ distances instead of a binary decision. We leave Mockingjay out of scope.
 \item \textbf{What is the Hawkeye policy, and can its reconstruction of OPT be
 implemented correctly in gem5?}
 \item \textbf{How do Hawkeye's LLC miss rate and IPC compare with LRU, DRRIP,
-and SHiP, and how close does Hawkeye come to OPT?}
+and SHiP?}
 \item \textbf{How sensitive is Hawkeye to its hardware budget and to the LLC
 size?}
 \end{itemize}
@@ -151,36 +151,29 @@ fixed signature.
 
 \subsection{Functional Validation}
 
-The functional correctness of the Hawkeye policy will be tested in three ways.
+The functional correctness of the Hawkeye policy will be tested in two ways.
 
-\emph{a) Unit testing with logs:} We will write a Python simulator of OPT and
-feed it the same address trace as OPTgen. For each access, the log will show
-OPTgen's hit or miss decision, the predictor counter, and the RRIP values,
-which we will compare with the Python results and, for short traces, with values
-calculated by hand, such as the example in the original paper.
+\emph{a) Unit testing with logs:} We will add logs to each component. For each
+access, the log will show OPTgen's hit or miss decision, the predictor counter,
+and the RRIP values. We will compare them with values calculated by hand for
+short access sequences, such as the example in the original paper, and with
+values computed by a small script for longer ones.
 
-\emph{b) Microbenchmarks:} We will write small C programs with known behavior.
-A loop over an array slightly larger than the LLC makes LRU miss on every access,
-whereas OPT keeps part of the array. A reused array mixed with a stream tests
-whether streaming lines are evicted first. An array that fits in the LLC should
-hit under every policy.
-
-\emph{c) Execution correctness:} The replacement policy must not change program
-results. The outputs of all test programs will be compared with those under
-LRU.
+\emph{b) Execution correctness:} Hawkeye will be integrated into the LLC and
+will run a series of test programs. The replacement policy must not change
+program results, so the outputs are expected to match those under LRU. Some
+test programs will have known access patterns, such as an array that fits in
+the LLC and one slightly larger than the LLC, so that we can also check whether
+the miss rates match our expectations.
 
 \subsection{Performance Impact}
 
-We will compare Hawkeye with LRU, BRRIP, DRRIP, and SHiP, all of which gem5
-already provides, and with OPT from the offline simulator as an upper bound. The
-workloads are the SPEC CPU2017~\cite{spec17} speed benchmarks that the course
-scripts support, such as mcf, omnetpp, xalancbmk, and gcc. For each benchmark,
-we will skip the initialization, warm up the caches, and then measure a fixed
-number of instructions. The metrics are LLC misses per kilo-instruction (MPKI),
-the miss reduction over LRU, and IPC. We will also vary the number of sampled
-sets, the predictor size, and the LLC size. We will estimate the hardware cost
-from the storage of the added structures, and we will evaluate a shared LLC
-on multiple cores if time permits.
+Hawkeye will be compared with baseline policies that gem5 already provides,
+such as LRU, DRRIP, and SHiP, on SPEC CPU2017~\cite{spec17} benchmarks such as
+mcf, omnetpp, xalancbmk, and gcc. The comparison will focus on LLC misses per
+kilo-instruction (MPKI) and IPC across different LLC sizes and predictor sizes.
+We will also estimate the hardware cost from the storage of the added
+structures.
 
 %% ------------------------------------------------------------------
 \section{Milestones}
@@ -192,10 +185,9 @@ The project is broken down into five milestones that span 5 weeks of work.
 the LLC and the O3CPU to the gem5 configuration, run the baseline policies, study
 the Hawkeye paper and the CRC2 code, and confirm that the PC reaches the LLC.
 \item \textbf{Milestone 2: Hawkeye Implementation (Week 2):} We will implement
-OPTgen, the Sampled Cache, the predictor, and the replacement policy, together
-with the Python OPT simulator.
+OPTgen, the Sampled Cache, the predictor, and the replacement policy.
 \item \textbf{Milestone 3: Functional Validation (Week 3):} We will run the unit
-tests and microbenchmarks and fix any differences from the expected behavior.
+tests and test programs and fix any differences from the expected behavior.
 \item \textbf{Milestone 4: Performance Evaluation (Week 4):} We will run SPEC
 CPU2017 with every policy and perform the sensitivity studies.
 \item \textbf{Milestone 5: Final Evaluation and Reporting (Week 5):} We will
@@ -207,10 +199,10 @@ analyze the results and write the final report and presentation.
 
 Vito will lead the design and implementation of Hawkeye in gem5, including
 OPTgen, the Sampled Cache, the predictor, and the replacement policy. He will
-also build the Python OPT simulator, design the validation plan, and lead the
-analysis of the results and the sensitivity studies. Endong will write the
-microbenchmarks and run the unit tests, comparing the logs with the expected
-values. Xiaotian will run the baseline and SPEC CPU2017 simulations and collect
+also design the validation plan, write the script that computes the expected
+OPTgen decisions, and lead the analysis of the results and the sensitivity
+studies. Endong will write the test programs and run the unit tests, comparing
+the logs with the expected values. Xiaotian will run the baseline and SPEC CPU2017 simulations and collect
 and plot the statistics. All three will write the final report.
 
 %% ------------------------------------------------------------------
