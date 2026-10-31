@@ -37,6 +37,11 @@ class HawkeyeRP(BaseReplacementPolicy):
     sampler_ways = Param.Unsigned(8, "Sampler associativity")
     predictor_entries = Param.Unsigned(2048, "Predictor table entries")
     counter_bits = Param.Unsigned(5, "Bits per predictor counter")
+    refresh_on_upper_eviction = Param.Bool(
+        False,
+        "Refresh a line predicted cache-friendly when the upper cache evicts "
+        "its copy (not in the paper; see hawkeye_rp.cc)",
+    )
 '''
 
 
@@ -49,8 +54,9 @@ def main():
 
     py = rp_dir / "ReplacementPolicies.py"
     text = py.read_text()
-    if "class HawkeyeRP" not in text:
-        py.write_text(text.rstrip("\n") + "\n" + PY_CLASS)
+    # The class is appended at the end, so a reinstall replaces it.
+    text = text.split("\n\nclass HawkeyeRP")[0]
+    py.write_text(text.rstrip("\n") + "\n" + PY_CLASS)
 
     sc = rp_dir / "SConscript"
     text = sc.read_text()

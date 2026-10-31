@@ -22,7 +22,7 @@ export TAG=${4:-main}
 
 MEDIUM="605.mcf_s"
 LIGHT="620.omnetpp_s 623.xalancbmk_s 502.gcc_r 531.deepsjeng_r 557.xz_r"
-POLICIES="LRU SRRIP BRRIP DRRIP SHiP Hawkeye"
+POLICIES=${POLICIES:-"LRU SRRIP BRRIP DRRIP SHiP Hawkeye"}
 
 jobs() {
     for b in $1; do

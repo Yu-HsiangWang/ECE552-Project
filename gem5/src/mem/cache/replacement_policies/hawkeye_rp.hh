@@ -91,6 +91,9 @@ class Hawkeye : public Base
     const unsigned predictorEntries;
     const unsigned counterMax;
 
+    /** Refresh a line when the upper cache evicts its copy (see update). */
+    const bool refreshOnUpperEviction;
+
     /** Predictor counters; >= threshold predicts cache-friendly. */
     mutable std::vector<unsigned> counters;
     const unsigned friendlyThreshold;
@@ -113,6 +116,7 @@ class Hawkeye : public Base
         statistics::Scalar noPCAccesses;
         statistics::Scalar writebacks;
         statistics::Scalar cleanEvicts;
+        statistics::Scalar upperEvictionRefreshes;
         statistics::Scalar sampledAccesses;
         statistics::Scalar optgenReuses;
         statistics::Scalar optgenHits;
@@ -131,6 +135,8 @@ class Hawkeye : public Base
     unsigned setIndex(Addr addr) const;
     bool isSampled(unsigned set) const;
     bool predict(uint64_t pc) const;
+    void refreshOnEviction(
+        const std::shared_ptr<HawkeyeReplData>& data) const;
     void train(uint64_t pc, bool friendly) const;
 
     /** Runs OPTgen and the sampler on an access to a sampled set. */

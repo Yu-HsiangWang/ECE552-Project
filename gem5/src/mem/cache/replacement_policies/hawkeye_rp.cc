@@ -27,7 +27,9 @@ Hawkeye::HawkeyeStats::HawkeyeStats(statistics::Group *parent)
     ADD_STAT(writebacks, statistics::units::Count::get(),
              "Writeback insertions and hits (not trained)"),
     ADD_STAT(cleanEvicts, statistics::units::Count::get(),
-             "CleanEvict notices from the upper cache (ignored)"),
+             "CleanEvict notices from the upper cache (not trained)"),
+    ADD_STAT(upperEvictionRefreshes, statistics::units::Count::get(),
+             "Lines refreshed when the upper cache evicted its copy"),
     ADD_STAT(sampledAccesses, statistics::units::Count::get(),
              "Demand accesses to sampled sets, seen by OPTgen"),
     ADD_STAT(optgenReuses, statistics::units::Count::get(),
@@ -67,6 +69,7 @@ Hawkeye::Hawkeye(const Params &p)
     samplerWays(p.sampler_ways),
     predictorEntries(p.predictor_entries),
     counterMax((1u << p.counter_bits) - 1),
+    refreshOnUpperEviction(p.refresh_on_upper_eviction),
     counters(p.predictor_entries, (counterMax + 1) / 2),
     friendlyThreshold((counterMax + 1) / 2),
     optgen(p.num_sets),
@@ -210,6 +213,21 @@ Hawkeye::sampleAccess(unsigned set, Addr addr, uint64_t pc)
 }
 
 void
+Hawkeye::refreshOnEviction(
+    const std::shared_ptr<HawkeyeReplData>& data) const
+{
+    // The LLC is mostly inclusive, so it does not see the hits a line gets
+    // while the L2 holds it, and the line ages meanwhile. LRU treats the
+    // L2's eviction notice as a use. With this option, Hawkeye does the same
+    // for lines whose PC is still predicted cache-friendly.
+    if (refreshOnUpperEviction && data->valid && data->pc != 0 &&
+        predict(data->pc)) {
+        data->rrpv = 0;
+        stats.upperEvictionRefreshes++;
+    }
+}
+
+void
 Hawkeye::update(const std::shared_ptr<ReplacementData>& replacement_data,
                 const PacketPtr pkt, bool hit)
 {
@@ -217,9 +235,10 @@ Hawkeye::update(const std::shared_ptr<ReplacementData>& replacement_data,
 
     // gem5 looks up the tags for every packet, so a CleanEvict from the L2
     // (the L2 dropped a clean copy) also lands here as a hit. It is not a
-    // program access: it must not train OPTgen or change the line's RRPV.
+    // program access: it must not train OPTgen.
     if (pkt->cmd == MemCmd::CleanEvict) {
         stats.cleanEvicts++;
+        refreshOnEviction(data);
         return;
     }
 
@@ -227,7 +246,9 @@ Hawkeye::update(const std::shared_ptr<ReplacementData>& replacement_data,
     // A line inserted by a writeback starts as cache-averse.
     if (pkt->isWriteback()) {
         stats.writebacks++;
-        if (!hit) {
+        if (hit) {
+            refreshOnEviction(data);
+        } else {
             data->rrpv = maxRRPV;
             data->pc = 0;
             data->valid = true;
