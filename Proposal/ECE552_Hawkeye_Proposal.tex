@@ -34,9 +34,11 @@ this choice largely decides the miss rate. The common least-recently-used (LRU)
 policy works well when recently used data is soon reused. However, it fails when
 a program cycles through a working set larger than the cache, because every
 line is then evicted just before it is reused, and when streaming data that is
-never reused pushes useful lines out. Improved policies such as
-RRIP~\cite{rrip} and SHiP~\cite{ship} handle some of these patterns, but each
-is built around a particular class of access patterns.
+never reused pushes useful lines out. Improved policies handle some of these
+patterns, for example by giving new lines a low priority so that they leave
+the cache quickly unless they are reused (RRIP~\cite{rrip}), or by learning
+which load instructions bring in lines that are reused (SHiP~\cite{ship}).
+However, each is built around a particular class of access patterns.
 
 Belady's algorithm~\cite{belady}, also called OPT, is the optimal policy. It
 evicts the line whose next use lies furthest in the future. OPT cannot be built
@@ -91,36 +93,23 @@ RRIP fail?}
 
 Jain and Lin proposed Hawkeye~\cite{hawkeye}, which has three parts.
 
-\textbf{OPTgen} computes whether each past access would have hit under OPT. For
-a line X, the time from one access to X to the next access to X is X's usage
-interval. OPT could have kept X in the cache during this interval only if fewer
-lines than the associativity were already being kept at every point in it.
-OPTgen therefore keeps an \emph{occupancy vector} per set, which counts how many
-lines OPT holds at each point in time. When X is accessed again, OPTgen checks
-the vector over X's usage interval. If every entry is below the associativity,
-OPT would have hit, and OPTgen increments those entries. Otherwise, OPT would
-have missed. The vector covers a history of 8$\times$ the associativity, and
-each entry represents 4 accesses, so a 16-way set needs 32 entries of 4 bits.
+\textbf{OPTgen} analyzes past accesses and reconstructs the decisions that OPT
+would have made. When a line is accessed again, OPTgen checks whether OPT could
+have kept the line in the cache since its previous access without exceeding the
+cache capacity. If so, OPT would have hit. Otherwise, OPT would have missed. To
+save storage, OPTgen observes only a small sample of the cache sets.
 
-\textbf{Sampling.} OPTgen runs on only 64 randomly chosen sets. A separate
-Sampled Cache records the recent accesses to these sets. Each entry holds a
-partial tag, the PC of the load, and a 1-byte timestamp. 2400 entries, replaced
-in LRU order, give the 8$\times$ history.
+\textbf{The Hawkeye Predictor} learns from OPTgen which load instructions bring
+in lines that are worth keeping. It keeps a small counter for each program
+counter (PC). When OPTgen decides that OPT would have hit, the counter of the
+PC that last accessed the line goes up. Otherwise, it goes down. When a line is
+accessed, the counter of its PC predicts whether the line is
+\emph{cache-friendly} or \emph{cache-averse}.
 
-\textbf{The Hawkeye Predictor} learns from OPTgen. It is a table of 8K 3-bit
-counters indexed by a 13-bit hash of the PC. When OPTgen decides that the
-previous access to X would have hit under OPT, the counter of the PC that made
-that access is incremented. Otherwise, it is decremented. On every LLC access,
-the counter of the current PC predicts whether the line is \emph{cache-friendly}
-(high bit set) or \emph{cache-averse}.
-
-\textbf{Replacement} uses a 3-bit RRIP value per line. A cache-averse line
-gets the value 7, which marks it for eviction first. A cache-friendly line gets
-0, and when it is inserted, the other lines in the set age by one, up to a
-maximum of 6. The victim is any line with value 7. If no such line exists,
-Hawkeye evicts the line with the highest value, i.e., the oldest cache-friendly
-line, and decrements the counter of its PC if the line is in the Sampled Cache.
-The paper reports a total budget of about 16\,KB for a 2\,MB LLC.
+\textbf{Replacement} decides which line to evict based on these predictions.
+Cache-averse lines are evicted first. If a set has none, Hawkeye evicts the
+oldest cache-friendly line and lowers the counter of the PC that brought it
+in.
 
 %% ------------------------------------------------------------------
 \section{Evaluation}
@@ -138,12 +127,11 @@ gem5:
 \item \textbf{Hawkeye replacement policy}: a new class for gem5's
 replacement-policy interface, which passes the requesting packet, and thus the
 PC, on every insertion and hit, as the existing SHiP policy uses.
-\item \textbf{Per-line state}: the RRIP value, the PC signature, and the
-prediction, stored with each line because the eviction call does not see the
-packet.
-\item \textbf{OPTgen and the Sampled Cache}: occupancy vectors and access
-history for the 64 sampled sets.
-\item \textbf{Hawkeye Predictor}: the 8K-entry table of 3-bit counters.
+\item \textbf{Per-line state}: the age, the PC, and the prediction, stored
+with each line because the eviction call does not see the packet.
+\item \textbf{OPTgen}: the access history of the sampled sets and the
+reconstructed OPT decisions.
+\item \textbf{Hawkeye Predictor}: the table of per-PC counters.
 \item \textbf{Requests without a PC}: writebacks and other requests from the
 L2, which must not train the predictor.
 \item \textbf{Logs and statistics}: a debug flag that prints each decision.
@@ -155,7 +143,7 @@ The functional correctness of the Hawkeye policy will be tested in two ways.
 
 \emph{a) Unit testing with logs:} We will add logs to each component. For each
 access, the log will show OPTgen's hit or miss decision, the predictor counter,
-and the RRIP values. We will compare them with values calculated by hand for
+and the age of each line. We will compare them with values calculated by hand for
 short access sequences, such as the example in the original paper, and with
 values computed by a small script for longer ones.
 
@@ -186,7 +174,7 @@ The project is broken down into five milestones that span 5 weeks of work.
 the LLC and the O3CPU to the gem5 configuration, run the baseline policies, study
 the Hawkeye paper and the CRC2 code, and confirm that the PC reaches the LLC.
 \item \textbf{Milestone 2: Hawkeye Implementation (Week 2):} We will implement
-OPTgen, the Sampled Cache, the predictor, and the replacement policy.
+OPTgen, the predictor, and the replacement policy.
 \item \textbf{Milestone 3: Functional Validation (Week 3):} We will run the unit
 tests and test programs and fix any differences from the expected behavior.
 \item \textbf{Milestone 4: Performance Evaluation (Week 4):} We will run SPEC
@@ -199,7 +187,7 @@ analyze the results and write the final report and presentation.
 \section{Division of Labor}
 
 Vito will lead the design and implementation of Hawkeye in gem5, including
-OPTgen, the Sampled Cache, the predictor, and the replacement policy. Endong
+OPTgen, the predictor, and the replacement policy. Endong
 will design the validation plan, write the test programs and the script that
 computes the expected OPTgen decisions, and run the unit tests. Xiaotian will
 run the baseline and SPEC CPU2017 simulations, repeat them for several LLC
