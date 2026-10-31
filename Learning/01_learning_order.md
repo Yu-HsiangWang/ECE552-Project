@@ -120,4 +120,4 @@ bash scripts/run_spec.sh 605.mcf_s DRRIP 10000000 50000000
 ## 學完之後
 
 - 對照 proposal（[`Proposal/ECE552_Hawkeye_Proposal.tex`](../Proposal/ECE552_Hawkeye_Proposal.tex)）和實作計畫（[`hawkeye_plan.md`](../hawkeye_plan.md)），看自己負責哪一塊。
-- 分工：Vito 負責 Hawkeye 的設計與 gem5 實作（OPTgen、Sampled Cache、預測器、替換策略）、Python OPT 參考模型、驗證計畫，以及結果分析與敏感度分析；Endong 寫微基準、跑單元測試並對照 log；Xiaotian 跑基準和 SPEC 模擬、整理統計與畫圖。
+- 分工（與 proposal 一致）：Vito 負責 Hawkeye 的設計與 gem5 實作（OPTgen、預測器、替換策略）；Endong 負責驗證計畫、測試程式、算 OPTgen 期望值的腳本與單元測試；Xiaotian 跑基準和 SPEC 模擬、換不同 LLC 大小重跑、整理統計與畫圖；三人一起分析結果、寫報告。
