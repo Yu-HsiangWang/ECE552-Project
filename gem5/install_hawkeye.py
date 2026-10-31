@@ -2,7 +2,8 @@
 """Install the Hawkeye replacement policy into a gem5 v23 source tree.
 
 Copies hawkeye_rp.{hh,cc} and registers HawkeyeRP in ReplacementPolicies.py
-and the SConscript. Also fixes x86-64 newfstatat in SE mode (see below).
+and the SConscript. Also fixes two gem5 problems (see below): x86-64
+newfstatat in SE mode, and software prefetches that lose their PC.
 Safe to run more than once.
 
 Usage: python3 install_hawkeye.py <gem5 dir> [<this repo's gem5 dir>]
@@ -76,6 +77,23 @@ def main():
     if old in text:
         tbl.write_text(text.replace(old, new))
         print("patched newfstatat in", tbl)
+
+    # On a software-prefetch miss, the cache answers the CPU at once and
+    # sends a copy of the request down, but the copy has no PC. The LLC then
+    # sees these prefetches without a PC, so PC-based policies (Hawkeye,
+    # SHiP) put them all under one signature. 620.omnetpp_s issues many of
+    # them (28% of its LLC accesses). Keep the PC on the copy.
+    cache = gem5 / "src/mem/cache/cache.cc"
+    old = """                                                    pkt->req->requestorId());
+            pf = new Packet(req, pkt->cmd);"""
+    new = """                                                    pkt->req->requestorId());
+            if (pkt->req->hasPC())
+                req->setPC(pkt->req->getPC());
+            pf = new Packet(req, pkt->cmd);"""
+    text = cache.read_text()
+    if old in text:
+        cache.write_text(text.replace(old, new))
+        print("patched software-prefetch PC in", cache)
 
 
 if __name__ == "__main__":
