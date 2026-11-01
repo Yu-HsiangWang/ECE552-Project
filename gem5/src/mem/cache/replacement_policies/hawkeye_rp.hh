@@ -57,9 +57,11 @@ class Hawkeye : public Base
         /** PC that last inserted or hit this line, for detraining. */
         uint64_t pc;
         bool valid;
+        /** Inserted by an instruction fetch (for the statistics only). */
+        bool inst;
 
         HawkeyeReplData(unsigned max_rrpv)
-          : rrpv(max_rrpv), pc(0), valid(false)
+          : rrpv(max_rrpv), pc(0), valid(false), inst(false)
         {}
     };
 
@@ -91,8 +93,9 @@ class Hawkeye : public Base
     const unsigned predictorEntries;
     const unsigned counterMax;
 
-    /** Refresh a line when the upper cache evicts its copy (see update). */
-    const bool refreshOnUpperEviction;
+    /** Lines refreshed when the upper cache evicts its copy (see update):
+     *  0 none, 1 those predicted cache-friendly, 2 all. */
+    const unsigned upperEvictionRefresh;
 
     /** Predictor counters; >= threshold predicts cache-friendly. */
     mutable std::vector<unsigned> counters;
@@ -122,9 +125,14 @@ class Hawkeye : public Base
         statistics::Scalar optgenHits;
         statistics::Scalar friendlyPredictions;
         statistics::Scalar aversePredictions;
+        statistics::Scalar instFriendlyPredictions;
+        statistics::Scalar instAversePredictions;
+        statistics::Scalar writebackInsertions;
         statistics::Scalar invalidVictims;
         statistics::Scalar averseVictims;
         statistics::Scalar friendlyVictims;
+        statistics::Scalar instAverseVictims;
+        statistics::Scalar instFriendlyVictims;
         statistics::Scalar detrains;
         statistics::Scalar agingSkipped;
         statistics::Formula optgenHitRate;

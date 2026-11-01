@@ -40,12 +40,22 @@ Hawkeye::HawkeyeStats::HawkeyeStats(statistics::Group *parent)
              "Accesses predicted cache-friendly"),
     ADD_STAT(aversePredictions, statistics::units::Count::get(),
              "Accesses predicted cache-averse"),
+    ADD_STAT(instFriendlyPredictions, statistics::units::Count::get(),
+             "Instruction fetches predicted cache-friendly"),
+    ADD_STAT(instAversePredictions, statistics::units::Count::get(),
+             "Instruction fetches predicted cache-averse"),
+    ADD_STAT(writebackInsertions, statistics::units::Count::get(),
+             "Lines inserted by a writeback (as cache-averse)"),
     ADD_STAT(invalidVictims, statistics::units::Count::get(),
              "Victims that were invalid lines"),
     ADD_STAT(averseVictims, statistics::units::Count::get(),
              "Victims with the maximum RRPV (cache-averse)"),
     ADD_STAT(friendlyVictims, statistics::units::Count::get(),
              "Victims that were the oldest cache-friendly line"),
+    ADD_STAT(instAverseVictims, statistics::units::Count::get(),
+             "Cache-averse victims inserted by an instruction fetch"),
+    ADD_STAT(instFriendlyVictims, statistics::units::Count::get(),
+             "Cache-friendly victims inserted by an instruction fetch"),
     ADD_STAT(detrains, statistics::units::Count::get(),
              "Predictor decrements on friendly evictions in sampled sets"),
     ADD_STAT(agingSkipped, statistics::units::Count::get(),
@@ -69,7 +79,7 @@ Hawkeye::Hawkeye(const Params &p)
     samplerWays(p.sampler_ways),
     predictorEntries(p.predictor_entries),
     counterMax((1u << p.counter_bits) - 1),
-    refreshOnUpperEviction(p.refresh_on_upper_eviction),
+    upperEvictionRefresh(p.upper_eviction_refresh),
     counters(p.predictor_entries, (counterMax + 1) / 2),
     friendlyThreshold((counterMax + 1) / 2),
     optgen(p.num_sets),
@@ -218,10 +228,11 @@ Hawkeye::refreshOnEviction(
 {
     // The LLC is mostly inclusive, so it does not see the hits a line gets
     // while the L2 holds it, and the line ages meanwhile. LRU treats the
-    // L2's eviction notice as a use. With this option, Hawkeye does the same
-    // for lines whose PC is still predicted cache-friendly.
-    if (refreshOnUpperEviction && data->valid && data->pc != 0 &&
-        predict(data->pc)) {
+    // L2's eviction notice as a use. With this option, Hawkeye does the same,
+    // for the lines whose PC is still predicted cache-friendly (1) or for
+    // every line (2).
+    if (upperEvictionRefresh != 0 && data->valid && data->pc != 0 &&
+        (upperEvictionRefresh == 2 || predict(data->pc))) {
         data->rrpv = 0;
         stats.upperEvictionRefreshes++;
     }
@@ -249,9 +260,11 @@ Hawkeye::update(const std::shared_ptr<ReplacementData>& replacement_data,
         if (hit) {
             refreshOnEviction(data);
         } else {
+            stats.writebackInsertions++;
             data->rrpv = maxRRPV;
             data->pc = 0;
             data->valid = true;
+            data->inst = false;
             lastCandidates.clear();
         }
         return;
@@ -272,14 +285,24 @@ Hawkeye::update(const std::shared_ptr<ReplacementData>& replacement_data,
     }
 
     const bool friendly = predict(pc);
+    const bool inst = pkt->req->isInstFetch();
     data->pc = pc;
     data->valid = true;
+    if (!hit) {
+        data->inst = inst;
+    }
 
     if (!friendly) {
         stats.aversePredictions++;
+        if (inst) {
+            stats.instAversePredictions++;
+        }
         data->rrpv = maxRRPV;
     } else {
         stats.friendlyPredictions++;
+        if (inst) {
+            stats.instFriendlyPredictions++;
+        }
         data->rrpv = 0;
         // A friendly insertion ages the other friendly lines of the set,
         // unless one of them already sits just below the maximum RRPV.
@@ -368,9 +391,13 @@ Hawkeye::getVictim(const ReplacementCandidates& candidates) const
 
     // Cache-averse lines go first.
     for (const auto &c : candidates) {
-        if (std::static_pointer_cast<HawkeyeReplData>(
-                c->replacementData)->rrpv == maxRRPV) {
+        auto d = std::static_pointer_cast<HawkeyeReplData>(
+            c->replacementData);
+        if (d->rrpv == maxRRPV) {
             stats.averseVictims++;
+            if (d->inst) {
+                stats.instAverseVictims++;
+            }
             DPRINTF(Hawkeye, "victim set %u way %u: averse\n",
                     c->getSet(), c->getWay());
             return c;
@@ -390,6 +417,10 @@ Hawkeye::getVictim(const ReplacementCandidates& candidates) const
         }
     }
     stats.friendlyVictims++;
+    if (std::static_pointer_cast<HawkeyeReplData>(
+            victim->replacementData)->inst) {
+        stats.instFriendlyVictims++;
+    }
     if (isSampled(victim->getSet())) {
         uint64_t pc = std::static_pointer_cast<HawkeyeReplData>(
             victim->replacementData)->pc;

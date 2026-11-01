@@ -37,10 +37,11 @@ class HawkeyeRP(BaseReplacementPolicy):
     sampler_ways = Param.Unsigned(8, "Sampler associativity")
     predictor_entries = Param.Unsigned(2048, "Predictor table entries")
     counter_bits = Param.Unsigned(5, "Bits per predictor counter")
-    refresh_on_upper_eviction = Param.Bool(
-        False,
-        "Refresh a line predicted cache-friendly when the upper cache evicts "
-        "its copy (not in the paper; see hawkeye_rp.cc)",
+    upper_eviction_refresh = Param.Unsigned(
+        0,
+        "When the upper cache evicts its copy of a line, refresh no line (0), "
+        "lines predicted cache-friendly (1), or every line (2) "
+        "(not in the paper; see hawkeye_rp.cc)",
     )
 '''
 
