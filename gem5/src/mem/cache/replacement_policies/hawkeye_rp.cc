@@ -80,6 +80,7 @@ Hawkeye::Hawkeye(const Params &p)
     predictorEntries(p.predictor_entries),
     counterMax((1u << p.counter_bits) - 1),
     upperEvictionRefresh(p.upper_eviction_refresh),
+    instAlwaysFriendly(p.inst_always_friendly),
     counters(p.predictor_entries, (counterMax + 1) / 2),
     friendlyThreshold((counterMax + 1) / 2),
     optgen(p.num_sets),
@@ -148,7 +149,7 @@ Hawkeye::train(uint64_t pc, bool friendly) const
 }
 
 void
-Hawkeye::sampleAccess(unsigned set, Addr addr, uint64_t pc)
+Hawkeye::sampleAccess(unsigned set, Addr addr, uint64_t pc, bool inst)
 {
     stats.sampledAccesses++;
     OptGen &og = optgen[set];
@@ -190,7 +191,9 @@ Hawkeye::sampleAccess(unsigned set, Addr addr, uint64_t pc)
                 "train pc %#x %s\n", set, addr, elapsed,
                 opt_hit ? "hit" : "miss", entry.pc,
                 opt_hit ? "up" : "down");
-        train(entry.pc, opt_hit);
+        if (!(instAlwaysFriendly && entry.inst)) {
+            train(entry.pc, opt_hit);
+        }
 
         // Move the entry to the MRU position of its sampler set.
         for (auto &other : sampler_set) {
@@ -219,6 +222,7 @@ Hawkeye::sampleAccess(unsigned set, Addr addr, uint64_t pc)
     it->second.lastTime = now;
     it->second.pc = pc;
     it->second.lru = 0;
+    it->second.inst = inst;
     timer[set] = (now + 1) % timerSize;
 }
 
@@ -280,12 +284,14 @@ Hawkeye::update(const std::shared_ptr<ReplacementData>& replacement_data,
 
     const Addr addr = pkt->getAddr() & ~Addr((1ULL << blockShift) - 1);
     const unsigned set = setIndex(addr);
+    const bool inst = pkt->req->isInstFetch();
     if (isSampled(set)) {
-        sampleAccess(set, addr, pc);
+        sampleAccess(set, addr, pc, inst);
     }
 
-    const bool friendly = predict(pc);
-    const bool inst = pkt->req->isInstFetch();
+    // The PC of an instruction fetch is the fetch address, not a load
+    // instruction, so with instAlwaysFriendly it does not use the predictor.
+    const bool friendly = (instAlwaysFriendly && inst) || predict(pc);
     data->pc = pc;
     data->valid = true;
     if (!hit) {
@@ -417,14 +423,13 @@ Hawkeye::getVictim(const ReplacementCandidates& candidates) const
         }
     }
     stats.friendlyVictims++;
-    if (std::static_pointer_cast<HawkeyeReplData>(
-            victim->replacementData)->inst) {
+    auto vd = std::static_pointer_cast<HawkeyeReplData>(
+        victim->replacementData);
+    if (vd->inst) {
         stats.instFriendlyVictims++;
     }
-    if (isSampled(victim->getSet())) {
-        uint64_t pc = std::static_pointer_cast<HawkeyeReplData>(
-            victim->replacementData)->pc;
-        train(pc, false);
+    if (isSampled(victim->getSet()) && !(instAlwaysFriendly && vd->inst)) {
+        train(vd->pc, false);
         stats.detrains++;
     }
     DPRINTF(Hawkeye, "victim set %u way %u: oldest friendly, rrpv %u\n",

@@ -43,6 +43,11 @@ class HawkeyeRP(BaseReplacementPolicy):
         "lines predicted cache-friendly (1), or every line (2) "
         "(not in the paper; see hawkeye_rp.cc)",
     )
+    inst_always_friendly = Param.Bool(
+        False,
+        "Insert instruction-fetch lines as cache-friendly and keep their "
+        "fetch addresses out of the predictor (not in the paper)",
+    )
 '''
 
 

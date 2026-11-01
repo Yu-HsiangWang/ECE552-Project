@@ -47,6 +47,8 @@ POLICIES = {
     "HawkeyeR": HawkeyeRP,
     # ... and refreshes every such line, whatever its prediction
     "HawkeyeA": HawkeyeRP,
+    # Hawkeye that always keeps instruction lines (see hawkeye_rp.cc)
+    "HawkeyeI": HawkeyeRP,
 }
 if args.rp not in POLICIES:
     m5.fatal(f"unknown --rp {args.rp}; choose from {sorted(POLICIES)}")
@@ -127,13 +129,14 @@ if args.rp == "DRRIP":
     # (see the DRRIPRP comment in ReplacementPolicies.py).
     llc_rp.constituency_size = llc_lines // (32 * args.llc_assoc)
     llc_rp.team_size = args.llc_assoc
-elif args.rp in ("Hawkeye", "HawkeyeR", "HawkeyeA"):
+elif args.rp in ("Hawkeye", "HawkeyeR", "HawkeyeA", "HawkeyeI"):
     llc_rp.num_sets = llc_lines // args.llc_assoc
     # 8x history; OPT may keep ways - 2 lines, as in the CRC2 code.
     llc_rp.optgen_vector_size = 8 * args.llc_assoc
     llc_rp.optgen_capacity = args.llc_assoc - 2
-    llc_rp.upper_eviction_refresh = {"Hawkeye": 0, "HawkeyeR": 1,
-                                     "HawkeyeA": 2}[args.rp]
+    llc_rp.upper_eviction_refresh = {"HawkeyeR": 1,
+                                     "HawkeyeA": 2}.get(args.rp, 0)
+    llc_rp.inst_always_friendly = args.rp == "HawkeyeI"
 system.llc.replacement_policy = llc_rp
 system.llc.cpu_side = system.l3bus.mem_side_ports
 

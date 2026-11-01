@@ -79,6 +79,7 @@ class Hawkeye : public Base
         uint64_t lastTime = 0;
         uint64_t pc = 0;
         unsigned lru = 0;
+        bool inst = false;
     };
 
     const unsigned maxRRPV;
@@ -96,6 +97,10 @@ class Hawkeye : public Base
     /** Lines refreshed when the upper cache evicts its copy (see update):
      *  0 none, 1 those predicted cache-friendly, 2 all. */
     const unsigned upperEvictionRefresh;
+
+    /** Insert instruction-fetch lines as cache-friendly and never train
+     *  the predictor with their fetch addresses. */
+    const bool instAlwaysFriendly;
 
     /** Predictor counters; >= threshold predicts cache-friendly. */
     mutable std::vector<unsigned> counters;
@@ -148,7 +153,7 @@ class Hawkeye : public Base
     void train(uint64_t pc, bool friendly) const;
 
     /** Runs OPTgen and the sampler on an access to a sampled set. */
-    void sampleAccess(unsigned set, Addr addr, uint64_t pc);
+    void sampleAccess(unsigned set, Addr addr, uint64_t pc, bool inst);
 
     /** Shared by reset() (hit = false) and touch() (hit = true). */
     void update(const std::shared_ptr<ReplacementData>& replacement_data,
