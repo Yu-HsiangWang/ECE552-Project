@@ -181,12 +181,14 @@ the miss rates match our expectations.
 \subsection{Performance Impact}
 
 Hawkeye and Mockingjay will be compared with each other and with baseline
-policies that gem5 already provides, such as LRU, DRRIP, and SHiP. We will focus on memory-intensive SPEC
-CPU2017~\cite{spec17} benchmarks, where the LLC matters most, such as mcf,
-omnetpp, xalancbmk, and gcc. The comparison will focus on LLC misses per
-kilo-instruction (MPKI) and IPC, and we will repeat it for several LLC sizes. We
-will also estimate the hardware cost from the storage of the added
-structures.
+policies that gem5 already provides, such as LRU, DRRIP, and SHiP. We will
+focus on memory-intensive SPEC CPU2017~\cite{spec17} benchmarks, where the LLC
+matters most, such as mcf, omnetpp, xalancbmk, and gcc. The comparison will
+focus on LLC misses per kilo-instruction (MPKI) and IPC. We will repeat it for
+one smaller and one larger LLC on mcf, omnetpp, and xalancbmk. We will also
+estimate the hardware cost from the storage of the added structures. We will
+evaluate a single core without hardware prefetching, so the multi-core and
+prefetch-aware versions of Mockingjay are out of scope.
 
 %% ------------------------------------------------------------------
 \section{Milestones}
@@ -202,7 +204,7 @@ and Mockingjay in parallel.
 \item \textbf{Milestone 3: Functional Validation (Week 3):} We will run the unit
 tests and microbenchmarks and fix any differences from the expected behavior.
 \item \textbf{Milestone 4: Performance Evaluation (Week 4):} We will run SPEC
-CPU2017 with every policy and repeat the runs for several LLC sizes.
+CPU2017 with every policy and repeat the runs for two other LLC sizes.
 \item \textbf{Milestone 5: Final Evaluation and Reporting (Week 5):} We will
 analyze the results and write the final report and presentation.
 \end{itemize}
@@ -214,7 +216,7 @@ Each of us will deliver part of the gem5 code. Vito and Endong will work on
 Hawkeye, including its implementation in gem5 and the microbenchmarks for its
 functional validation. Vito and Xiaotian will do the same for Mockingjay.
 Endong and Xiaotian will run the baseline and SPEC CPU2017 simulations, repeat
-them for several LLC sizes, and collect and plot the statistics. All three will
+them for the other LLC sizes, and collect and plot the statistics. All three will
 analyze the results and write the final report.
 
 %% ------------------------------------------------------------------
