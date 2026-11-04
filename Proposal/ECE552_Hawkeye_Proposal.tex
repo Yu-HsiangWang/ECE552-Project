@@ -6,22 +6,23 @@
 
 \begin{document}
 
-\title{CS 550 Final Project Proposal:\\Replication of the Hawkeye Cache
-Replacement Policy}
+\title{CS 550 Final Project Proposal:\\Replication of the Hawkeye and
+Mockingjay Cache Replacement Policies}
 
 \author{Vito Wang, Endong Dai, and Xiaotian Tong}
 
 \maketitle
 
 \begin{abstract}
-This project replicates the Hawkeye cache replacement policy~\cite{hawkeye}
-in gem5 and evaluates it on SPEC CPU2017. Hawkeye learns from Belady's optimal
-replacement algorithm. It reconstructs the decisions that the optimal policy
-would have made on past cache accesses and uses them to train a predictor that
-decides which cache lines to keep. We will validate each component with unit
-tests and logs, check that programs produce the same results as under LRU, and
-compare Hawkeye's miss rate and performance with the replacement policies that
-gem5 already provides, such as LRU, DRRIP, and SHiP.
+This project replicates two cache replacement policies that learn from
+Belady's optimal replacement algorithm, Hawkeye~\cite{hawkeye} and
+Mockingjay~\cite{mockingjay}, in gem5 and evaluates them on SPEC CPU2017.
+Hawkeye reconstructs the decisions that the optimal policy would have made on
+past accesses and learns which lines to keep. Mockingjay instead predicts when
+each line will be reused and evicts the line reused furthest in the future. We
+will validate each policy with logs and microbenchmarks, and compare their miss
+rate and performance with each other and with the policies that gem5 already
+provides, such as LRU, DRRIP, and SHiP.
 \end{abstract}
 
 %% ------------------------------------------------------------------
@@ -45,14 +46,18 @@ evicts the line whose next use lies furthest in the future. OPT cannot be built
 in hardware because it needs future knowledge. Hawkeye~\cite{hawkeye} avoids
 this problem by looking at the past instead. It computes what OPT would have
 done on past accesses, learns which load instructions tend to bring in lines
-that OPT would keep, and uses this to guide future evictions. The original paper
-evaluated Hawkeye in the Cache Replacement Championship simulator on SPEC CPU2006.
-gem5 does not include Hawkeye, so it has not been evaluated with gem5's
-out-of-order CPU model or with SPEC CPU2017.
+that OPT would keep, and uses this to guide future evictions. However, it only
+classifies each line as worth keeping or not. Its follow-up,
+Mockingjay~\cite{mockingjay}, predicts how far in the future each line will be
+reused, which lets it order lines the way OPT does. The two policies were
+evaluated in the Cache Replacement Championship simulator and in ChampSim. gem5
+includes neither of them, so they have not been evaluated with gem5's
+out-of-order CPU model.
 
-This project aims to implement Hawkeye~\cite{hawkeye} in
-gem5~\cite{gem5,gem5v20}. The goal is to verify its functional correctness and
-to compare its miss rate and performance with the baseline policies in gem5.
+This project aims to implement Hawkeye and Mockingjay in
+gem5~\cite{gem5,gem5v20}. The goal is to verify their functional correctness
+and to compare their miss rate and performance with each other and with the
+baseline policies in gem5.
 
 %% ------------------------------------------------------------------
 \section{Related Work}
@@ -71,25 +76,26 @@ for each program counter (PC), whether the lines it inserts are reused, and
 SDBP~\cite{sdbp} predicts dead blocks from a small sampler. Both learn from the
 behavior of a heuristic policy, so they inherit its limits.
 
-Hawkeye~\cite{hawkeye} instead learns from OPT itself. Its authors won the
-2nd Cache Replacement Championship (CRC2)~\cite{crc2}, and we will use the CRC2
-code as a reference. Its follow-up, Mockingjay~\cite{mockingjay}, predicts reuse
-distances instead of a binary decision. We leave Mockingjay out of scope.
+Hawkeye~\cite{hawkeye} and Mockingjay~\cite{mockingjay} instead learn from OPT
+itself. Hawkeye won the 2nd Cache Replacement Championship (CRC2)~\cite{crc2},
+and we will use its CRC2 code as a reference.
 
 %% ------------------------------------------------------------------
 \section{Research Questions}
 
 \begin{itemize}
-\item \textbf{What is the Hawkeye policy, and can its reconstruction of OPT be
+\item \textbf{What are the Hawkeye and Mockingjay policies, and can they be
 implemented correctly in gem5?}
-\item \textbf{How do Hawkeye's LLC miss rate and IPC compare with LRU, DRRIP,
-and SHiP?}
-\item \textbf{Why can Hawkeye reduce misses in access patterns where LRU and
-RRIP fail?}
+\item \textbf{How do their LLC miss rate and IPC compare with each other and
+with LRU, DRRIP, and SHiP?}
+\item \textbf{Why can they reduce misses where LRU and RRIP fail, and when does
+predicting reuse distances help more than a keep-or-evict decision?}
 \end{itemize}
 
 %% ------------------------------------------------------------------
 \section{Proposed Solution}
+
+\subsection{Hawkeye}
 
 Jain and Lin proposed Hawkeye~\cite{hawkeye}, which has three parts.
 
@@ -111,6 +117,25 @@ Cache-averse lines are evicted first. If a set has none, Hawkeye evicts the
 oldest cache-friendly line and lowers the counter of the PC that brought it
 in.
 
+\subsection{Mockingjay}
+
+Shah, Jain, and Lin proposed Mockingjay~\cite{mockingjay}, which also has three
+parts.
+
+\textbf{The Sampled Cache} records the recent accesses to a few sampled sets.
+When a line is accessed again, it measures the reuse distance, i.e., the number
+of accesses to the set since the line's previous access. A line that leaves the
+Sampled Cache without being reused is treated as never reused.
+
+\textbf{The Reuse Distance Predictor} learns from these measurements the typical
+reuse distance of the lines brought in by each PC.
+
+\textbf{Replacement} gives each line a counter of the estimated time remaining
+until its next use. The counter starts at the predicted reuse distance and
+counts down as the set is accessed. Mockingjay evicts the line furthest from
+its predicted reuse, and skips inserting a line that would be reused later than
+every line in the set.
+
 %% ------------------------------------------------------------------
 \section{Evaluation}
 
@@ -118,36 +143,35 @@ in.
 
 We will use gem5 v23.0.0.1 on the course AWS instance, in syscall-emulation (SE)
 mode with the x86 out-of-order CPU model (O3CPU). Following the original
-paper, the cache hierarchy has 32\,KB 4-way L1 instruction and data caches, a
+papers, the cache hierarchy has 32\,KB L1 instruction and data caches, a
 256\,KB 8-way L2, and a 2\,MB 16-way LLC. The course configuration has only two
 cache levels, so we will add the LLC. We will add the following components to
 gem5:
 
 \begin{itemize}
-\item \textbf{Hawkeye replacement policy}: a new class for gem5's
+\item \textbf{Two replacement policies}: new classes for gem5's
 replacement-policy interface, which passes the requesting packet, and thus the
 PC, on every insertion and hit, as the existing SHiP policy uses.
-\item \textbf{Per-line state}: the age, the PC, and the prediction, stored
+\item \textbf{Per-line state}: the age or time remaining, and the PC, stored
 with each line because the eviction call does not see the packet.
-\item \textbf{OPTgen}: the access history of the sampled sets and the
-reconstructed OPT decisions.
-\item \textbf{Hawkeye Predictor}: the table of per-PC counters.
-\item \textbf{Requests without a PC}: writebacks and other requests from the
-L2, which must not train the predictor.
+\item \textbf{Sampling and prediction}: OPTgen and the Hawkeye Predictor, and
+the Sampled Cache and the Reuse Distance Predictor of Mockingjay.
+\item \textbf{Bypass}: gem5's replacement policies cannot refuse an insertion,
+so Mockingjay will insert such a line as the next one to evict.
 \item \textbf{Logs and statistics}: a debug flag that prints each decision.
 \end{itemize}
 
 \subsection{Functional Validation}
 
-The functional correctness of the Hawkeye policy will be tested in two ways.
+The functional correctness of both policies will be tested in two ways.
 
 \emph{a) Unit testing with logs:} We will add logs to each component. For each
-access, the log will show OPTgen's hit or miss decision, the predictor counter,
-and the age of each line. We will compare them with values calculated by hand for
-short access sequences, such as the example in the original paper, and with
-values computed by a small script for longer ones.
+access, the log will show OPTgen's decision or the measured reuse distance, the
+prediction, and the age or time remaining of each line. We will compare them
+with values calculated by hand for short access sequences and with values
+computed by a small script for longer ones.
 
-\emph{b) Execution correctness:} Hawkeye will be integrated into the LLC and
+\emph{b) Execution correctness:} Each policy will be integrated into the LLC and
 will run a series of test programs. The replacement policy must not change
 program results, so the outputs are expected to match those under LRU. Some
 test programs will have known access patterns, such as an array that fits in
@@ -156,8 +180,8 @@ the miss rates match our expectations.
 
 \subsection{Performance Impact}
 
-Hawkeye will be compared with baseline policies that gem5 already provides,
-such as LRU, DRRIP, and SHiP. We will focus on memory-intensive SPEC
+Hawkeye and Mockingjay will be compared with each other and with baseline
+policies that gem5 already provides, such as LRU, DRRIP, and SHiP. We will focus on memory-intensive SPEC
 CPU2017~\cite{spec17} benchmarks, where the LLC matters most, such as mcf,
 omnetpp, xalancbmk, and gcc. The comparison will focus on LLC misses per
 kilo-instruction (MPKI) and IPC, and we will repeat it for several LLC sizes. We
@@ -172,11 +196,11 @@ The project is broken down into five milestones that span 5 weeks of work.
 \begin{itemize}
 \item \textbf{Milestone 1: Setup and Initial Research (Week 1):} We will add
 the LLC and the O3CPU to the gem5 configuration, run the baseline policies, study
-the Hawkeye paper and the CRC2 code, and confirm that the PC reaches the LLC.
-\item \textbf{Milestone 2: Hawkeye Implementation (Week 2):} We will implement
-OPTgen, the predictor, and the replacement policy.
+both papers and their code, and confirm that the PC reaches the LLC.
+\item \textbf{Milestone 2: Implementation (Week 2):} We will implement Hawkeye
+and Mockingjay in parallel.
 \item \textbf{Milestone 3: Functional Validation (Week 3):} We will run the unit
-tests and test programs and fix any differences from the expected behavior.
+tests and microbenchmarks and fix any differences from the expected behavior.
 \item \textbf{Milestone 4: Performance Evaluation (Week 4):} We will run SPEC
 CPU2017 with every policy and repeat the runs for several LLC sizes.
 \item \textbf{Milestone 5: Final Evaluation and Reporting (Week 5):} We will
@@ -186,13 +210,12 @@ analyze the results and write the final report and presentation.
 %% ------------------------------------------------------------------
 \section{Division of Labor}
 
-Vito will lead the design and implementation of Hawkeye in gem5, including
-OPTgen, the predictor, and the replacement policy. Endong
-will design the validation plan, write the test programs and the script that
-computes the expected OPTgen decisions, and run the unit tests. Xiaotian will
-run the baseline and SPEC CPU2017 simulations, repeat them for several LLC
-sizes, and collect and plot the statistics. All three will analyze the results and
-write the final report.
+Each of us will deliver part of the gem5 code. Vito and Endong will work on
+Hawkeye, including its implementation in gem5 and the microbenchmarks for its
+functional validation. Vito and Xiaotian will do the same for Mockingjay.
+Endong and Xiaotian will run the baseline and SPEC CPU2017 simulations, repeat
+them for several LLC sizes, and collect and plot the statistics. All three will
+analyze the results and write the final report.
 
 %% ------------------------------------------------------------------
 \begin{thebibliography}{99}
@@ -200,6 +223,10 @@ write the final report.
 \bibitem{hawkeye}
 A. Jain and C. Lin, ``Back to the future: Leveraging Belady's algorithm for
 improved cache replacement,'' in \emph{Proc. ISCA}, 2016.
+
+\bibitem{mockingjay}
+I. Shah, A. Jain, and C. Lin, ``Effective mimicry of Belady's MIN policy,'' in
+\emph{Proc. HPCA}, 2022.
 
 \bibitem{rrip}
 A. Jaleel, K. B. Theobald, S. C. Steely Jr., and J. Emer, ``High performance
@@ -237,10 +264,6 @@ last-level caches,'' in \emph{Proc. MICRO}, 2010.
 
 \bibitem{crc2}
 The 2nd Cache Replacement Championship (CRC2), held with ISCA 2017.
-
-\bibitem{mockingjay}
-I. Shah, A. Jain, and C. Lin, ``Effective mimicry of Belady's MIN policy,'' in
-\emph{Proc. HPCA}, 2022.
 
 \bibitem{spec17}
 Standard Performance Evaluation Corporation, ``SPEC CPU2017,''
