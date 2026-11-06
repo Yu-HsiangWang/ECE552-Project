@@ -7,6 +7,7 @@
 # Output: ~/hawkeye/out/<benchmark>/<policy>[_$TAG]/{stats.txt,config.ini,log.txt}
 # MEM_MAX env var (e.g. 9G) caps the run's memory, so a run that grows too
 # large is killed instead of hanging the whole instance.
+# LLC_SIZE env var (e.g. 1MB) changes the LLC size (default 2MB).
 
 set -e
 BENCH=$1
@@ -52,4 +53,5 @@ cd "$RUN_DIR"
 LIMIT=
 [ -n "$MEM_MAX" ] && LIMIT="systemd-run --user --scope -q -p MemoryMax=$MEM_MAX -p MemorySwapMax=0"
 $LIMIT $GEM5 -q --outdir="$OUT" "$CONFIG" --cmd="$BINARY" --options="$OPTS" \
-    --rp="$RP" --fast-forward="$FF" --warmup="$WARMUP" --measure="$MEASURE" > "$OUT/log.txt" 2>&1
+    --rp="$RP" ${LLC_SIZE:+--llc-size=$LLC_SIZE} --fast-forward="$FF" \
+    --warmup="$WARMUP" --measure="$MEASURE" > "$OUT/log.txt" 2>&1
