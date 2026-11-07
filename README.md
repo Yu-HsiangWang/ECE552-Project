@@ -90,3 +90,5 @@
 - 10-30：微基準三種模式 × 六種策略全部符合預期，checksum 一致；OPTgen 9222 筆判斷與 Python 參考模型 0 不一致。詳見 `results/01_microbench_validation.md`。
 - 10-30：SPEC 測項選 mcf、omnetpp、xalancbmk、cactuBSSN、deepsjeng、xz。gcc 在 gem5 SE 模式下報 `/usr/include: not a directory` 而提早結束（系統呼叫模擬問題，同課程 README 說的 lbm），先排除。
 - 10-30 00:13 UTC：開始正式實驗（fast-forward 10 億、暖身 5000 萬、量測 2 億，36 組），預估約 3 小時。
+- 10-31～11-04：2 MB 主實驗與 HawkeyeR／A／I 分析，詳見 `results/02_spec_main.md`。Hawkeye 在 gem5 輸給 LRU 的主因是指令抓取的行被預測為 averse，HawkeyeI（指令行一律 friendly）可修正。
+- 11-06：硬體成本估算（`results/03_hawkeye_storage.md`）；LLC 1 MB／4 MB 掃描 42 組全部完成（`results/04_llc_sweep.md`）。

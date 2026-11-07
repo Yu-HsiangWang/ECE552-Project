@@ -3,6 +3,8 @@
 # xalancbmk, with every policy of the main runs.
 #
 # Usage: run_llc_sweep.sh [fast_forward] [warmup] [measure]
+#        SIZES / POLICIES env vars override the lists below,
+#        e.g. POLICIES=HawkeyeI run_llc_sweep.sh
 # Output: ~/hawkeye/out/<benchmark>/<policy>_llc<size>/
 # Memory pools as in run_all_spec.sh. Runs whose log already says
 # "measure done" are skipped.
