@@ -6,3 +6,6 @@ local/
 *.aux
 *.log
 *.synctex.gz
+
+# Python caches
+__pycache__/

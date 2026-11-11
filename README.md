@@ -92,3 +92,4 @@
 - 10-30 00:13 UTC：開始正式實驗（fast-forward 10 億、暖身 5000 萬、量測 2 億，36 組），預估約 3 小時。
 - 10-31～11-04：2 MB 主實驗與 HawkeyeR／A／I 分析，詳見 `results/02_spec_main.md`。Hawkeye 在 gem5 輸給 LRU 的主因是指令抓取的行被預測為 averse，HawkeyeI（指令行一律 friendly）可修正。
 - 11-06：硬體成本估算（`results/03_hawkeye_storage.md`）；LLC 1 MB／4 MB 掃描 42 組全部完成（`results/04_llc_sweep.md`）。
+- 11-10：Mockingjay 參考模型 `tools/mockingjay_ref.py`（硬體成本 31.91 KB 與論文相同、微基準預期值、gem5 介面做法），詳見 `results/05_mockingjay_ref.md`；status report 在 `StatusReport/`（IEEEtran compsoc，`fig/make_figs.py` 產生 Fig. 2）。
