@@ -436,16 +436,18 @@ omnetpp.
 \emph{Completed so far.}
 \begin{itemize}
 \item \textbf{Vito Wang (Hawkeye):} implemented Hawkeye in gem5, found and
-fixed the three gem5 problems, wrote the OPTgen reference model and the
-microbenchmarks, validated Hawkeye, analyzed its SPEC CPU2017 results, tested
-the three variants including HawkeyeI, and estimated its storage.
+fixed the clean-eviction and software-prefetch problems, wrote the OPTgen
+reference model and validated Hawkeye against it, analyzed its SPEC CPU2017
+results, and tested the three variants including HawkeyeI.
 \item \textbf{Endong Dai (system and baselines):} added the O3CPU, the LLC,
-and the fast-forward step to the gem5 configuration, built the SPEC CPU2017
-benchmarks, ran the baseline policies at the three LLC sizes, and collected and
-plotted the statistics.
-\item \textbf{Xiaotian Tong (Mockingjay model):} wrote the Mockingjay
-reference model, estimated its storage, computed the expected microbenchmark
-results, and mapped the design onto gem5's interface.
+and the fast-forward step to the gem5 configuration, fixed the
+\texttt{newfstatat} problem, built the SPEC CPU2017 benchmarks, wrote the
+microbenchmarks, ran the baseline policies at the three LLC sizes, and
+collected and plotted the statistics.
+\item \textbf{Xiaotian Tong (Mockingjay model and storage):} wrote the
+Mockingjay reference model, estimated the storage of both policies, computed
+the expected microbenchmark results, and mapped the design onto gem5's
+interface.
 \end{itemize}
 
 \emph{Remaining.} Vito and Xiaotian will implement Mockingjay in gem5 and
