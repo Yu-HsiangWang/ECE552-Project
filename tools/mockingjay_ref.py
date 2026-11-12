@@ -14,6 +14,11 @@ plan and later validate the gem5 implementation.
   python3 mockingjay_ref.py storage [--sets 2048 --ways 16]
       Prints the storage of each hardware structure.
 
+  python3 mockingjay_ref.py check <gem5 log made with --debug-flags=Mockingjay>
+      Replays the policy events of a gem5 Mockingjay run (fills, hits,
+      writebacks, invalidations, in the ways gem5 used) through this model
+      with lazy aging, and compares every victim and every ETR with gem5's.
+
 The model is a rewrite (not a copy) of a public single-core ChampSim
 implementation of Mockingjay (Apache 2.0) whose storage matches the paper's
 31.91 KB, and uses the same parameters:
@@ -35,6 +40,8 @@ Two options model the differences we expect in gem5:
 """
 
 import argparse
+import gzip
+import re
 import sys
 from collections import Counter
 
@@ -251,6 +258,86 @@ class Mockingjay:
 
 
 # ----------------------------------------------------------------------
+# check against a gem5 log
+# ----------------------------------------------------------------------
+
+MJ_RE = re.compile(
+    r"MJ (fill|hit|wbfill|wbhit) set (\d+) way (\d+) addr (0x[0-9a-f]+|0) "
+    r"pc (0x[0-9a-f]+|0) etr (-?\d+)")
+MJ_VICTIM_RE = re.compile(r"MJ victim set (\d+) way (\d+)")
+MJ_INVAL_RE = re.compile(r"MJ inval set (\d+) way (\d+)")
+
+
+def expected_victim(mj, s):
+    row = mj.blocks[s]
+    if None in row:
+        return row.index(None)
+    max_etr, victim = 0, 0
+    for w in range(mj.ways):
+        e = mj.get_etr(s, w)
+        if abs(e) > max_etr or (abs(e) == max_etr and e < 0):
+            max_etr, victim = abs(e), w
+    return victim
+
+
+def check_log(path, sets, ways, show=10):
+    """Drive the model with gem5's own sequence of policy events and compare
+    each victim choice and each new ETR."""
+    mj = Mockingjay(sets, ways, bypass=False, lazy=True)
+    n = Counter()
+    bad = []
+    opener = gzip.open if path.endswith(".gz") else open
+    with opener(path, "rt") as f:
+        for lineno, line in enumerate(f, 1):
+            m = MJ_RE.search(line)
+            if m:
+                kind, s, w = m.group(1), int(m.group(2)), int(m.group(3))
+                addr, pc, etr = int(m.group(4), 16), int(m.group(5), 16), int(m.group(6))
+                blk = addr >> mj.log2_block
+                hit = kind in ("hit", "wbhit")
+                if hit and mj.blocks[s][w] != blk:
+                    bad.append((lineno, f"hit on a line the model does not hold: {line.strip()}"))
+                mj.blocks[s][w] = blk
+                if kind == "wbfill":
+                    mj.set_etr(s, w, -mj.inf_etr)
+                    n["writeback fills"] += 1
+                elif kind == "wbhit":
+                    n["writeback hits"] += 1
+                else:
+                    sig = mj.signature(pc, hit)
+                    if mj.is_sampled(s):
+                        mj.train(s, addr, sig, False)
+                    mj.age(s, w)
+                    rd = mj.rdp.get(sig)
+                    want = (0 if rd is None else mj.inf_etr if rd > mj.max_rd
+                            else rd // mj.GRANULARITY)
+                    mj.set_etr(s, w, want)
+                    n["demand " + kind] += 1
+                    if want != etr:
+                        bad.append((lineno, f"ETR gem5 {etr} model {want}: {line.strip()}"))
+                continue
+            m = MJ_VICTIM_RE.search(line)
+            if m:
+                s, w = int(m.group(1)), int(m.group(2))
+                want = expected_victim(mj, s)
+                n["victims"] += 1
+                if want != w:
+                    bad.append((lineno, f"victim gem5 way {w} model way {want}: {line.strip()}"))
+                continue
+            m = MJ_INVAL_RE.search(line)
+            if m:
+                mj.blocks[int(m.group(1))][int(m.group(2))] = None
+                n["invalidations"] += 1
+    for k in sorted(n):
+        print(f"  {k:<16} {n[k]}")
+    print(f"  RDP updates {mj.stats['train']}, detrains {mj.stats['detrain']}")
+    print(f"  mismatches: {len(bad)}")
+    for lineno, msg in bad[:show]:
+        print(f"    line {lineno}: {msg}")
+    return len(bad)
+
+
+# ----------------------------------------------------------------------
 # streams
 # ----------------------------------------------------------------------
 
@@ -341,13 +428,13 @@ def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
-    for name in ("micro", "log", "storage"):
+    for name in ("micro", "log", "storage", "check"):
         c = sub.add_parser(name)
         c.add_argument("--sets", type=int, default=2048)
         c.add_argument("--ways", type=int, default=16)
-        if name == "log":
+        if name in ("log", "check"):
             c.add_argument("log")
-        if name != "storage":
+        if name in ("micro", "log"):
             c.add_argument("--check-lazy", action="store_true")
         if name == "micro":
             c.add_argument("--passes", type=int, default=6)
@@ -360,6 +447,9 @@ def main():
             print(f"{name:<26} {n:>6} x {bits:>2} bit = {n * bits / 8192:7.2f} KB")
         print(f"{'total':<26} {total / 8192:27.2f} KB")
         return 0
+
+    if args.cmd == "check":
+        return 1 if check_log(args.log, args.sets, args.ways) else 0
 
     if args.cmd == "micro":
         for pattern in ("fit", "thrash", "mix"):

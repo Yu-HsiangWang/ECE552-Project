@@ -49,6 +49,10 @@ POLICIES = {
     "HawkeyeA": HawkeyeRP,
     # Hawkeye that always keeps instruction lines (see hawkeye_rp.cc)
     "HawkeyeI": HawkeyeRP,
+    "Mockingjay": MockingjayRP,
+    # Mockingjay that inserts instruction lines with ETR 0 and keeps their
+    # fetch addresses out of the sampled cache (see mockingjay_rp.cc)
+    "MockingjayI": MockingjayRP,
 }
 if args.rp not in POLICIES:
     m5.fatal(f"unknown --rp {args.rp}; choose from {sorted(POLICIES)}")
@@ -137,6 +141,10 @@ elif args.rp in ("Hawkeye", "HawkeyeR", "HawkeyeA", "HawkeyeI"):
     llc_rp.upper_eviction_refresh = {"HawkeyeR": 1,
                                      "HawkeyeA": 2}.get(args.rp, 0)
     llc_rp.inst_always_friendly = args.rp == "HawkeyeI"
+elif args.rp in ("Mockingjay", "MockingjayI"):
+    llc_rp.num_sets = llc_lines // args.llc_assoc
+    llc_rp.num_ways = args.llc_assoc
+    llc_rp.inst_no_predict = args.rp == "MockingjayI"
 system.llc.replacement_policy = llc_rp
 system.llc.cpu_side = system.l3bus.mem_side_ports
 
