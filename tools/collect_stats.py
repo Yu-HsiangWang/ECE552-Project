@@ -14,7 +14,7 @@ import csv
 import re
 from pathlib import Path
 
-POLICIES = ["LRU", "SRRIP", "BRRIP", "DRRIP", "SHiP", "Hawkeye", "HawkeyeR", "HawkeyeA", "HawkeyeI"]
+POLICIES = ["LRU", "SRRIP", "BRRIP", "DRRIP", "SHiP", "Hawkeye", "HawkeyeR", "HawkeyeA", "HawkeyeI", "Mockingjay", "MockingjayI"]
 
 
 def read_stats(path):

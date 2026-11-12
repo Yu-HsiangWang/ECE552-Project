@@ -1,0 +1,23 @@
+Global frequency set at 1000000000000 ticks per second
+warn: No dot file generated. Please install pydot to generate the dot file and pdf.
+src/mem/dram_interface.cc:690: warn: DRAM device capacity (16384 Mbytes) does not match the address range assigned (8192 Mbytes)
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/remote_gdb.cc:418: warn: Sockets disabled, not accepting gdb connections
+info: Standard input is not a terminal, disabling listeners.
+src/sim/simulate.cc:194: info: Entering event queue @ 0.  Starting simulation...
+src/sim/syscall_emul.cc:74: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall rseq(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/syscall_emul.hh:1014: warn: readlink() called on '/proc/self/exe' may yield unexpected results in various settings.
+      Returning '/home/ec2-user/spec2017/benchspec/CPU/623.xalancbmk_s/build/build_base_mytest-m64.0000/xalancbmk_s'
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/simulate.cc:194: info: Entering event queue @ 1119449226000.  Starting simulation...
+src/sim/power_state.cc:105: warn: PowerState: Already in the requested power state, request ignored
+Fast-forward: exiting @ tick 1119449226000 because fast-forward done
+switching cpus
+src/sim/simulate.cc:194: info: Entering event queue @ 1119449227000.  Starting simulation...
+Warmup: exiting @ tick 1137909890500 because warmup done
+src/sim/simulate.cc:194: info: Entering event queue @ 1137909890500.  Starting simulation...
+Exiting @ tick 1212038490500 because measure done

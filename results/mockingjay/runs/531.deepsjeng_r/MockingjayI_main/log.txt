@@ -1,0 +1,80 @@
+Global frequency set at 1000000000000 ticks per second
+warn: No dot file generated. Please install pydot to generate the dot file and pdf.
+src/mem/dram_interface.cc:690: warn: DRAM device capacity (16384 Mbytes) does not match the address range assigned (8192 Mbytes)
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/remote_gdb.cc:418: warn: Sockets disabled, not accepting gdb connections
+info: Standard input is not a terminal, disabling listeners.
+src/sim/simulate.cc:194: info: Entering event queue @ 0.  Starting simulation...
+src/sim/syscall_emul.cc:74: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall rseq(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/syscall_emul.hh:1014: warn: readlink() called on '/proc/self/exe' may yield unexpected results in various settings.
+      Returning '/home/ec2-user/spec2017/benchspec/CPU/531.deepsjeng_r/build/build_base_mytest-m64.0000/deepsjeng_r'
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+Deep Sjeng version 3.2 SPEC, Copyright (C) 2000-2009 Gian-Carlo Pascutto
+Allocated 15000000 hash entries, totalling 720000000 bytes.
+Analyzing 16 plies...
+  +----+----+----+----+----+----+----+----+
+8 | *R |    |    |    | *Q | *B |    | *K |
+  +----+----+----+----+----+----+----+----+
+7 |    | *B |    |    |    |    | *P |    |
+  +----+----+----+----+----+----+----+----+
+6 | *P |    |    | *P | *R |    |    | *P |
+  +----+----+----+----+----+----+----+----+
+5 |    |    |    | *N |    |    |    |    |
+  +----+----+----+----+----+----+----+----+
+4 |  P | *N | *P |    |  N |    |  N |    |
+  +----+----+----+----+----+----+----+----+
+3 |    |    |    |    |    |    |  R |  P |
+  +----+----+----+----+----+----+----+----+
+2 |    |  B |    |    |    |  P |  P |    |
+  +----+----+----+----+----+----+----+----+
+1 |    |  B |    |  Q |  R |    |  K |    |
+  +----+----+----+----+----+----+----+----+
+
+     a    b    c    d    e    f    g    h
+
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+Middlegame phase.
+Time for move : 99999999
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+ 3     -32     0      614  Qd4 ??
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+ 3     -21     0     1181  Qd4 Rc8 a5 Qf7 
+ 3     -16     0     2362  Qf3 Qh5 a5 Rae8 
+ 3     -16     0     2737  Qf3 Qh5 a5 Rae8 
+ 4     -16     0     3166  Qf3 Qh5 a5 Rae8 
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+ 4     -16     0     4078  Qf3 Qh5 a5 Rae8 
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+ 5     -42     0     7676  Qf3 a5 Qf5 Qg6 Qf3 Rae8 
+ 5     -31     0     9124  Qd4 Rc8 Ne3 Nxe3 Rgxe3 Qxa4 
+ 5     -31     0    12546  Qd4 Rc8 Ne3 Nxe3 Rgxe3 Qxa4 
+ 6     -20     0    16981  Qd4 Rc8 Rf3 h5 Ne3 Nxe3 Rfxe3 Qxa4 
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+ 6     -20     0    18873  Qd4 Rc8 Rf3 h5 Ne3 Nxe3 Rfxe3 Qxa4 
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+ 7     -23     0    25424  Qd4 Rc8 Rf3 a5 Rc1 Ba6 Rf5 
+ 7     -23     0    32035  Qd4 Rc8 Rf3 a5 Rc1 Ba6 Rf5 
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+ 8     -30     0    45908  Qd4 Rc8 Rf3 h5 Ne3 Nxe3 Rfxe3 Qxa4 f4 d5 
+ 8     -30     0    56551  Qd4 Rc8 Rf3 h5 Ne3 Nxe3 Rfxe3 Qxa4 f4 d5 
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+ 9     -35     0   143218  Qd4 Rc8 Ne3 Nxe3 Rexe3 Qd7 Nc3 Rf6 Ne4 Rf5 
+ 9     -35     0   161821  Qd4 Rc8 Ne3 Nxe3 Rexe3 Qd7 Nc3 Rf6 Ne4 Rf5 
+src/sim/power_state.cc:105: warn: PowerState: Already in the requested power state, request ignored
+Fast-forward: exiting @ tick 1023679118000 because fast-forward done
+switching cpus
+src/sim/simulate.cc:194: info: Entering event queue @ 1023679118000.  Starting simulation...
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+Warmup: exiting @ tick 1040188521500 because warmup done
+src/sim/simulate.cc:194: info: Entering event queue @ 1040188521500.  Starting simulation...
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+Exiting @ tick 1106313103000 because measure done
