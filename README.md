@@ -93,3 +93,4 @@
 - 10-31～11-04：2 MB 主實驗與 HawkeyeR／A／I 分析，詳見 `results/02_spec_main.md`。Hawkeye 在 gem5 輸給 LRU 的主因是指令抓取的行被預測為 averse，HawkeyeI（指令行一律 friendly）可修正。
 - 11-06：硬體成本估算（`results/03_hawkeye_storage.md`）；LLC 1 MB／4 MB 掃描 42 組全部完成（`results/04_llc_sweep.md`）。
 - 11-10：Mockingjay 參考模型 `tools/mockingjay_ref.py`（硬體成本 31.91 KB 與論文相同、微基準預期值、gem5 介面做法），詳見 `results/05_mockingjay_ref.md`；status report 在 `StatusReport/`（IEEEtran compsoc，`fig/make_figs.py` 產生 Fig. 2）。
+- 11-11：status report 定稿，併入組員的修改（用詞不絕對、Mockingjay 結果標明來自模型、PC 說明、分工寫各人已完成的部分）。

@@ -11,7 +11,7 @@
 
 \begin{document}
 
-\title{CS 550 Project Status Report:\\Replication of the Hawkeye and
+\title{CS 550/ECE 552 Project Status Report:\\Replication of the Hawkeye and
 Mockingjay Cache Replacement Policies}
 
 \author{Vito Wang, Endong Dai, and Xiaotian Tong}
@@ -19,16 +19,18 @@ Mockingjay Cache Replacement Policies}
 \IEEEtitleabstractindextext{%
 \begin{abstract}
 This report describes our progress in replicating two cache replacement
-policies that learn from Belady's optimal algorithm, Hawkeye and Mockingjay, in
-gem5. Hawkeye is implemented, validated against a reference model, and
-evaluated on six SPEC CPU2017 benchmarks and three last-level cache (LLC)
-sizes. It reduces LLC misses by 6.3\% on mcf, the benchmark with the most LLC
-misses, but increases them on omnetpp and gcc. We traced most of this increase
-to instruction lines that Hawkeye predicts are not worth keeping. A variant
-that always keeps instruction lines removes most of the loss. For Mockingjay,
-we built a reference model that reproduces the storage of the original design
-and gives the expected results of our microbenchmarks. Its gem5 implementation
-is behind schedule, and we give a revised timeline.
+policies that approximate Belady's optimal algorithm, Hawkeye and Mockingjay,
+in gem5. Hawkeye is implemented in gem5, and its OPTgen matches a reference
+model on all 9,218 decisions of a test log. We evaluated it on six SPEC CPU2017
+benchmarks and three last-level cache (LLC) sizes. It reduces LLC misses by
+6.3\% on mcf, the benchmark with the most LLC misses, but increases them on
+omnetpp and gcc. We traced most of this increase to instruction lines that
+Hawkeye predicts are not worth keeping. A variant that always keeps instruction
+lines removes most of the loss. For Mockingjay, we built a reference model that
+reproduces the storage of the original design and gives the expected results
+of our microbenchmarks. Its gem5 implementation is behind schedule, so all
+Mockingjay results in this report come from the model, and we give a revised
+timeline.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -41,9 +43,10 @@ Cache replacement, last-level cache, Belady's algorithm, gem5
 %% ------------------------------------------------------------------
 \IEEEraisesectionheading{\section{Introduction \& Problem Statement}}
 
-\IEEEPARstart{T}{he} last-level cache (LLC) is the last on-chip structure that
-can hide the long latency of DRAM, so every LLC miss stalls the processor for
-hundreds of cycles. When the LLC is full, the replacement policy chooses which
+\IEEEPARstart{T}{he} last-level cache (LLC) is the last on-chip structure
+before DRAM. An LLC miss needs a DRAM access that takes hundreds of cycles, and
+an out-of-order processor can hide only part of this latency. When the LLC is
+full, the replacement policy chooses which
 line to evict, and this choice largely decides the miss rate. The common
 least-recently-used (LRU) policy fails when a program cycles through a working
 set larger than the cache, and when data that is never reused pushes useful
@@ -74,7 +77,9 @@ and we use them as baselines. SHiP~\cite{ship} learns for each program counter
 (PC) whether the lines it inserts are reused, and SDBP~\cite{sdbp} predicts
 dead blocks from a small sampler. Both learn from a heuristic policy, so they
 inherit its limits. Hawkeye~\cite{hawkeye} and Mockingjay~\cite{mockingjay}
-instead learn from OPT itself. Hawkeye won the 2nd Cache Replacement
+both aim to approximate OPT, but they predict different things. Hawkeye learns
+from OPT's decisions on past accesses, while Mockingjay predicts reuse
+distances and evicts the line it expects to be reused last. Hawkeye won the 2nd Cache Replacement
 Championship (CRC2)~\cite{crc2}. We use its CRC2 code and a public ChampSim
 implementation of Mockingjay as references.
 
@@ -98,7 +103,9 @@ access patterns where LRU and RRIP fail, such as a working set slightly larger
 than the cache, or reused data mixed with data that is used only once. We also
 expect Mockingjay to do better than Hawkeye when lines are reused at different
 but predictable distances, because it can tell which of the lines worth keeping
-will be reused last. Fig.~\ref{fig:arch} shows where both policies sit in our
+will be reused last. We do not expect either policy to beat every baseline on
+every benchmark. Their IPC gains also depend on how much of the miss latency the
+O3CPU already overlaps. Fig.~\ref{fig:arch} shows where both policies sit in our
 gem5 system and their structures.
 
 \begin{figure*}[t]
@@ -128,6 +135,8 @@ gem5 system and their structures.
 % (b) Hawkeye
 \begin{scope}[yshift=-2.3cm]
 \node[row] at (-0.05,1.0) {(b) Hawkeye};
+\node[font=\footnotesize\itshape, anchor=east] at (19.8,1.0)
+  {implemented and evaluated in gem5};
 \node[box] (ha) at (\ca,0) {LLC access\\(address, PC)};
 \node[st] (og) at (\cb,0) {OPTgen + sampler\\(64 sampled sets)};
 \node[st, text width=3.0cm] (hp) at (\cc,0) {Predictor\\(2K $\times$ 5-bit counters)};
@@ -144,11 +153,13 @@ gem5 system and their structures.
 % (c) Mockingjay
 \begin{scope}[yshift=-4.85cm]
 \node[row] at (-0.05,1.0) {(c) Mockingjay};
+\node[font=\footnotesize\itshape, anchor=east] at (19.8,1.0)
+  {reference model done, gem5 code in progress};
 \node[box] (ma) at (\ca,0) {LLC access\\(address, PC, hit)};
 \node[st] (sc) at (\cb,0) {Sampled cache\\(32 sampled sets)};
 \node[st, text width=3.0cm] (rdp) at (\cc,0) {Reuse distance\\predictor (2K $\times$ 7 bit)};
 \node[st] (etr) at (\cd,0) {LLC lines\\(5-bit ETR each)};
-\node[box, text width=3.0cm] (mv) at (\ce,0) {Victim: largest $|$ETR$|$,\\or bypass the new line};
+\node[box, text width=3.0cm] (mv) at (\ce,0) {Victim: largest $|$ETR$|$,\\or bypass the new line$^{\ast}$};
 \draw[arr] (ma) -- (sc);
 \draw[arr] (sc) -- node[lab, above] {reuse distance} (rdp);
 \draw[arr] (rdp) -- node[lab, above] {predicted distance} (etr);
@@ -158,9 +169,12 @@ gem5 system and their structures.
   {counts down once every 8 accesses to the set};
 \end{scope}
 \end{tikzpicture}}
-\caption{(a) The gem5 system. The PC travels with each request to the LLC.
-(b) Hawkeye and (c) Mockingjay. Shaded boxes are the structures that each
-policy adds, with sizes for a 2\,MB LLC.}
+\caption{(a) The gem5 system. Demand requests carry their PC to the LLC.
+Writebacks and the L2's clean-eviction notices carry none, and the policies
+handle them separately. (b) Hawkeye and (c) Mockingjay. Shaded boxes are the
+structures that each policy adds, with sizes for a 2\,MB LLC. $^{\ast}$gem5
+cannot bypass, so our gem5 version inserts the line as the next victim
+(Section~\ref{sec:method}).}
 \label{fig:arch}
 \end{figure*}
 
@@ -198,12 +212,14 @@ not insert it.
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{fig/spec_2mb.pdf}
-\caption{LLC misses removed relative to LRU with a 2\,MB LLC. Benchmarks are
-sorted by the LRU miss rate. HawkeyeI always keeps instruction lines.}
+\caption{LLC misses removed relative to LRU with a 2\,MB LLC. A negative value
+means more misses than LRU. Benchmarks are sorted by the LRU miss rate.
+HawkeyeI always keeps instruction lines.}
 \label{fig:spec}
 \end{figure*}
 
 \subsection{Methodology}
+\label{sec:method}
 
 We use gem5 v23.0.0.1 in syscall-emulation mode with the x86 out-of-order CPU
 model (O3CPU) and the cache hierarchy of Fig.~\ref{fig:arch}(a), without
@@ -217,18 +233,22 @@ course instance has 15\,GB.
 \emph{Progress made.} We added the LLC and the fast-forward step to the course
 configuration. Hawkeye is a new class (630 lines of C++) in gem5's
 replacement-policy interface, with a debug flag and statistics. While
-validating it, we found and fixed three gem5 problems that affect any PC-based
-policy. First, the L2 notifies the LLC of every clean eviction, and gem5 passes
+validating it, we found and fixed three gem5 problems. First, the L2 notifies the LLC of every clean eviction, and gem5 passes
 these notifications to the replacement policy as if they were accesses. Hawkeye
 trained on 8.7 million of them in mcf, so it now ignores them. Second, gem5's
 x86-64 \texttt{newfstatat} system call used the wrong file-status structure, so
 omnetpp and gcc failed to start. Third, gem5 dropped the PC when the L1
 forwarded a software prefetch, so 28\% of omnetpp's LLC accesses had no PC.
+We now copy the PC to the forwarded request. After these fixes, the only LLC
+requests without a PC are the L2's writebacks and clean-eviction notices. As in
+the CRC2 code, Hawkeye does not train on writebacks. A line filled by a
+writeback is inserted as cache-averse.
 
 For Mockingjay, we mapped the original design onto gem5's interface. gem5's
 policies cannot refuse an insertion. However, a line that Mockingjay would not
 insert gets an ETR larger than every other line in the set, so inserting it
-normally makes it the next victim. Also, gem5 passes only the accessed line to
+normally makes it the next victim. This is an approximation, because the new
+line still evicts one line. Also, gem5 passes only the accessed line to
 the policy, so the policy cannot age the whole set every 8 accesses. Each line
 instead records the set's aging count when its ETR is set, and the current ETR
 is computed when the line is compared.
@@ -237,10 +257,13 @@ is computed when the line is compared.
 
 \emph{Progress made.} We validate each policy with logs and with
 microbenchmarks. The Hawkeye debug flag prints every OPTgen decision,
-prediction, and victim. A Python reference model replays the logged LLC
+prediction, RRPV, and victim. A Python reference model replays the logged LLC
 accesses through its own OPTgen and compares every decision. It also prints a
 short example that can be checked by hand. On a 345,074-access log, gem5 and the
-model made the same 9,218 OPTgen decisions with no mismatch.
+model made the same 9,218 OPTgen decisions with no mismatch. This check covers
+OPTgen only. We have not yet compared the predictor counters, RRPVs, and
+victims with the model. The log already records them, so we will extend the
+model to replay them and report any mismatch.
 
 \begin{table}[t]
 \centering
@@ -273,15 +296,19 @@ Table~\ref{tab:micro} shows our three microbenchmarks. \emph{fit} loops over a
 1\,MB reused array with a stream that is never reused. All policies behave as
 expected. In fit, every policy has only compulsory misses. In thrash, LRU
 misses on every access, while Hawkeye keeps part of the array, as BRRIP does.
-In mix, only Hawkeye separates the reused array from the stream. For each
+In mix, Hawkeye has the lowest miss rate of the six gem5 policies (88.3\%).
+BRRIP also improves on LRU, but only to 96.4\%. For each
 microbenchmark, the program output is identical under all six policies.
 
 For Mockingjay, we wrote a second reference model that follows the public
 ChampSim code. It replays the same LLC accesses as our microbenchmarks. The OPT miss rate
 of these streams (42.9\% on thrash) matches the 43.0\% that we computed from
-the gem5 log, so they model the gem5 runs closely. These results are the
-expected values for the gem5 implementation. They also show two things for our
-plan. First, the lack of bypass in gem5 costs at most 1.2 points. Second,
+the gem5 log, so they model the gem5 runs closely. The Mockingjay rows of
+Table~\ref{tab:micro} are therefore expected values for the gem5
+implementation, not gem5 measurements. They also show two things for our plan.
+First, in these microbenchmarks, inserting the line instead of bypassing it
+raises the miss rate by at most 1.2 percentage points. We will check whether
+this difference stays small on SPEC CPU2017 once the gem5 code runs. Second,
 Mockingjay learns slowly on short runs. It decides that a line is not reused
 only after 127 accesses to its set, so on mix it starts keeping the reused array only
 in the fourth pass. We will therefore run its microbenchmarks for 20 passes.
@@ -299,9 +326,8 @@ of every fourth access. Our Mockingjay model needs
 
 \subsection{Performance Impact}
 
-
-
-\emph{Results so far.} Fig.~\ref{fig:spec} compares the policies with a 2\,MB
+\emph{Results so far.} This section has no Mockingjay results, since
+Mockingjay does not yet run in gem5. Fig.~\ref{fig:spec} compares the policies with a 2\,MB
 LLC. On mcf, which has 38 times the LLC misses per kilo-instruction (MPKI)
 of any other benchmark, Hawkeye removes 6.3\% of the misses and improves IPC
 by 1.4\%. No built-in policy improves IPC by more than 0.1\%. On xalancbmk,
@@ -325,7 +351,8 @@ remaining loss on omnetpp comes from data lines, and we are still analyzing it.
 \begin{table}[t]
 \centering
 \caption{LLC misses removed vs.\ LRU (\%) / IPC speedup vs.\ LRU for three LLC
-sizes. ``Best'' is the built-in policy with the highest IPC.}
+sizes. ``Best'' is the built-in policy with the highest IPC. A negative value
+means more misses than LRU.}
 \label{tab:sweep}
 \setlength{\tabcolsep}{3.2pt}
 \begin{tabular}{@{}llrrr@{}}
@@ -370,11 +397,11 @@ every size.
 \toprule
 Milestone (planned week) & Status \\
 \midrule
-1. Setup (Week 1, Oct.~29--Nov.~4) & Completed. \\
-2. Implementation (Week 2, Nov.~5--11) & Hawkeye completed in Week 1. Mockingjay design and reference model completed, gem5 code behind (new date Nov.~18). \\
-3. Functional validation (Week 3, Nov.~12--18) & Hawkeye completed early. Mockingjay expected values ready, gem5 runs by Nov.~22. \\
-4. Performance evaluation (Week 4, Nov.~19--25) & Hawkeye completed early, with all three LLC sizes. Mockingjay by Nov.~26. \\
-5. Final report (Week 5, Nov.~26--Dec.~3) & Not started, on schedule. \\
+1. Setup (Week 1, Oct.~29--Nov.~4) & \textbf{Met.} \\
+2. Implementation (Week 2, Nov.~5--11) & \textbf{Hawkeye met} in Week 1. \textbf{Mockingjay late:} design and reference model done, gem5 code by Nov.~18. \\
+3. Functional validation (Week 3, Nov.~12--18) & \textbf{Hawkeye mostly met early:} OPTgen check and microbenchmarks done. Predictor, RRPV, and victim check by Nov.~22. \textbf{Mockingjay late:} gem5 runs by Nov.~22. \\
+4. Performance evaluation (Week 4, Nov.~19--25) & \textbf{Hawkeye met early} at all three LLC sizes. \textbf{Mockingjay late:} by Nov.~26. \\
+5. Final report (Week 5, Nov.~26--Dec.~3) & \textbf{Not started}, on schedule. \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -382,7 +409,7 @@ Milestone (planned week) & Status \\
 Table~\ref{tab:milestones} lists our milestones. Milestone~1 is complete. The
 LLC, the O3CPU, and the baseline policies run in gem5, and every demand access
 to the LLC carries a PC. The Hawkeye parts of Milestones~2 to 4 are complete two to three
-weeks ahead of the plan. Beyond the plan, we also found and fixed three gem5
+weeks ahead of the plan, except the predictor, RRPV, and victim check. Beyond the plan, we also found and fixed three gem5
 problems, explained Hawkeye's losses, and tested three variants of it.
 
 We have not met Milestone~2 for Mockingjay. We added Mockingjay on Nov.~2,
@@ -396,14 +423,34 @@ validation flow of Hawkeye, so we plan to complete its gem5 code by Nov.~18,
 validate it by Nov.~22, and finish its SPEC runs at all three LLC sizes by
 Nov.~26. This keeps the final report on schedule.
 
+\emph{Next steps.} Besides the Mockingjay code, we will (i) compare Hawkeye's
+predictor counters, RRPVs, and victims with the reference model, (ii) compare
+the Mockingjay gem5 code with its reference model on the same access streams,
+(iii) measure how much inserting instead of bypassing costs Mockingjay on SPEC
+CPU2017, and (iv) find the cause of Hawkeye's remaining data-line loss on
+omnetpp.
+
 %% ------------------------------------------------------------------
 \section{Division of Labor}
 
-Each of us delivers part of the gem5 code. Vito and Endong work on Hawkeye,
-including its implementation in gem5 and the microbenchmarks for its functional
-validation. Vito and Xiaotian do the same for Mockingjay. Endong and Xiaotian
-run the baseline and SPEC CPU2017 simulations, repeat them for the other LLC
-sizes, and collect and plot the statistics. All three analyze the results and
+\emph{Completed so far.}
+\begin{itemize}
+\item \textbf{Vito Wang (Hawkeye):} implemented Hawkeye in gem5, found and
+fixed the three gem5 problems, wrote the OPTgen reference model and the
+microbenchmarks, validated Hawkeye, analyzed its SPEC CPU2017 results, tested
+the three variants including HawkeyeI, and estimated its storage.
+\item \textbf{Endong Dai (system and baselines):} added the O3CPU, the LLC,
+and the fast-forward step to the gem5 configuration, built the SPEC CPU2017
+benchmarks, ran the baseline policies at the three LLC sizes, and collected and
+plotted the statistics.
+\item \textbf{Xiaotian Tong (Mockingjay model):} wrote the Mockingjay
+reference model, estimated its storage, computed the expected microbenchmark
+results, and mapped the design onto gem5's interface.
+\end{itemize}
+
+\emph{Remaining.} Vito and Xiaotian will implement Mockingjay in gem5 and
+validate it against the reference model. Endong will run it with the baselines
+on SPEC CPU2017 at the three LLC sizes. All three will analyze the results and
 write the final report.
 
 %% ------------------------------------------------------------------
