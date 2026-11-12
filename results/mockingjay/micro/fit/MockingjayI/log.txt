@@ -1,0 +1,18 @@
+Global frequency set at 1000000000000 ticks per second
+warn: No dot file generated. Please install pydot to generate the dot file and pdf.
+src/mem/dram_interface.cc:690: warn: DRAM device capacity (16384 Mbytes) does not match the address range assigned (8192 Mbytes)
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/remote_gdb.cc:418: warn: Sockets disabled, not accepting gdb connections
+info: Standard input is not a terminal, disabling listeners.
+src/sim/simulate.cc:194: info: Entering event queue @ 0.  Starting simulation...
+src/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 13
+src/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 20
+src/arch/x86/cpuid.cc:180: warn: x86 cpuid family 0x0000: unimplemented function 25
+src/sim/syscall_emul.cc:74: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall rseq(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/syscall_emul.hh:1014: warn: readlink() called on '/proc/self/exe' may yield unexpected results in various settings.
+      Returning '/home/ec2-user/hawkeye/micro/llc_patterns'
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+checksum 9682944
+Exiting @ tick 2003437500 because exiting with last active thread context
