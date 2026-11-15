@@ -2,6 +2,8 @@
 
 gem5 實作之前先完成的部分：Python 參考模型 `tools/mockingjay_ref.py`、硬體成本、微基準的預期值，以及接進 gem5 介面的做法。
 
+> 11-12 gem5 實作已完成，照下面的做法接入，`check` 逐筆比對 0 不一致。驗證與 SPEC 結果見 [06_mockingjay_gem5.md](06_mockingjay_gem5.md)。
+
 ## 參考模型
 
 - 依照公開的 ChampSim 單核心 Mockingjay 實作（Apache 2.0）重寫，沒有複製程式碼。參數由 LLC 大小推出，2 MB、16-way 時：

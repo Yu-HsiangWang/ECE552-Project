@@ -73,15 +73,23 @@
 - `gem5/install_hawkeye.py <gem5 目錄>`：把 Hawkeye 複製進 gem5、註冊 `HawkeyeRP` 與 debug flag `Hawkeye`，之後 `scons build/X86/gem5.opt`。
 - 設定檔 `--rp=Hawkeye` 會自動依 LLC 大小設定 set 數、OPTgen 長度（8×ways）與容量（ways − 2）。
 
+## Mockingjay 實作（`gem5/src/mem/cache/replacement_policies/mockingjay_rp.*`，Endong 11-12）
+
+- `gem5/install_mockingjay.py <gem5 目錄>`：先跑 `install_hawkeye.py`（含兩個策略共用的 gem5 修正），再跑這支註冊 `MockingjayRP` 與 debug flag `Mockingjay`。
+- `--rp=Mockingjay` 依 LLC 大小推出所有參數（同 ChampSim 版與參考模型）；`--rp=MockingjayI` 是指令行以 ETR 0 插入、不進 sampled cache 的變體。
+- 驗證、結果與審查：`results/06_mockingjay_gem5.md`；原始表格與每次 run 的 stats 在 `results/mockingjay/`。
+
 ## 參考模型（`tools/hawkeye_ref.py`）
 
 - `python3 tools/hawkeye_ref.py demo`：一個 3-way set 反覆存取 A B C D，並排印出 LRU、Belady OPT、OPTgen 的每一步（教學用）。
 - `python3 tools/hawkeye_ref.py check <gem5 log>`：讀 `--debug-flags=Hawkeye` 的 gem5 輸出，用 Python 重算 OPTgen 並逐筆比對標籤，另外算同一串 LLC 存取在 LRU 與 Belady OPT 下的 miss 率。
+- `python3 tools/mockingjay_ref.py check <gem5 log(.gz)>`：讀 `--debug-flags=Mockingjay` 的輸出，用 gem5 的存取順序驅動模型，逐筆比對每個 victim 與 ETR。
+- `python3 tools/combine_results.py`：把各次 SPEC 結果合併成 `results/06_all_policies.csv`（三種 LLC 大小 × 所有策略）。
 
 ## 微基準（`tools/microbench/`）
 
 - `llc_patterns.c`：`fit`（1 MB，放得下）、`thrash`（3 MB，LRU 全 miss）、`mix`（1 MB 重用陣列＋24 MB 串流），每種印 checksum 供比對程式結果。
-- `run_micro.sh`：在 EC2 上用六種策略各跑三種模式，輸出到 `~/hawkeye/micro/<pattern>/<policy>/`。
+- `run_micro.sh`：在 EC2 上用六種策略各跑三種模式，輸出到 `~/hawkeye/micro/<pattern>/<policy>/`。`PASSES=20` 改輪數（輸出到 `micro_p20/`），`DEBUG=Mockingjay` 另存 debug trace。
 
 ## 進度紀錄
 
@@ -94,3 +102,5 @@
 - 11-06：硬體成本估算（`results/03_hawkeye_storage.md`）；LLC 1 MB／4 MB 掃描 42 組全部完成（`results/04_llc_sweep.md`）。
 - 11-10：Mockingjay 參考模型 `tools/mockingjay_ref.py`（硬體成本 31.91 KB 與論文相同、微基準預期值、gem5 介面做法），詳見 `results/05_mockingjay_ref.md`；status report 在 `StatusReport/`（IEEEtran compsoc，`fig/make_figs.py` 產生 Fig. 2）。
 - 11-11：status report 定稿，併入組員的修改（用詞不絕對、Mockingjay 結果標明來自模型、PC 說明、分工寫各人已完成的部分）。
+- 11-12（Endong，`mockingjay` 分支）：Mockingjay gem5 實作、`check` 在三個微基準 0 不一致、微基準 6／20 輪、SPEC 2 MB 六個測項＋1／4 MB 三個測項（含 MockingjayI）。
+- 11-14：審查後快轉合併進 main；統整所有策略的結果（`results/06_mockingjay_gem5.md`、`06_all_policies.csv`）。
