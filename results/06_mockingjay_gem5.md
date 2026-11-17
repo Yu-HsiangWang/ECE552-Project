@@ -145,8 +145,8 @@
 
 ## 期末報告前的待辦
 
-- [ ] Hawkeye 的預測器、RRPV、victim 逐筆比對，達到 Mockingjay `check` 的程度（status report 承諾 11/22 前完成）。
-- [ ] 內建策略與 Hawkeye 補跑 20 輪微基準，跟 Mockingjay 一起比。
-- [ ] 用 SPEC 的 LLC 存取 log 離線估計 Mockingjay 真正 bypass 時的 miss（mcf、deepsjeng、gcc 最值得做）。
+- [x] Hawkeye 的預測器、RRPV、victim 逐筆比對，達到 Mockingjay `check` 的程度（status report 承諾 11/22 前完成）。11-17 完成，見 [07_final_runs.md](07_final_runs.md) 第 1 節。
+- [x] 內建策略與 Hawkeye 補跑 20 輪微基準，跟 Mockingjay 一起比。11-17 完成，見 07 第 3 節。
+- [x] 用 SPEC 的 LLC 存取 log 離線估計 Mockingjay 真正 bypass 時的 miss（mcf、deepsjeng、gcc 最值得做）。11-17 完成，六個測項都做了，見 07 第 4 節。觀察 2 的 xalancbmk 4 MB 損失見 07 第 5 節。
 - [ ] 分析 xalancbmk 4 MB 的損失（已過期 victim 的重用情形）。
 - [ ] 期末報告的分工要照實際情形更新（Mockingjay 的 gem5 程式由 Endong 提交）。

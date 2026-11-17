@@ -8,6 +8,9 @@
 # MEM_MAX env var (e.g. 9G) caps the run's memory, so a run that grows too
 # large is killed instead of hanging the whole instance.
 # LLC_SIZE env var (e.g. 1MB) changes the LLC size (default 2MB).
+# DEBUG env var (e.g. Mockingjay) writes a gem5 debug trace to
+# <out>/trace.txt.gz, from the end of the fast-forward (or from the start
+# when there is no fast-forward).
 
 set -e
 BENCH=$1
@@ -52,6 +55,17 @@ mkdir -p "$OUT"
 cd "$RUN_DIR"
 LIMIT=
 [ -n "$MEM_MAX" ] && LIMIT="systemd-run --user --scope -q -p MemoryMax=$MEM_MAX -p MemorySwapMax=0"
-$LIMIT $GEM5 -q --outdir="$OUT" "$CONFIG" --cmd="$BINARY" --options="$OPTS" \
-    --rp="$RP" ${LLC_SIZE:+--llc-size=$LLC_SIZE} --fast-forward="$FF" \
-    --warmup="$WARMUP" --measure="$MEASURE" > "$OUT/log.txt" 2>&1
+DBG=()
+CFG_DBG=()
+if [ -n "$DEBUG" ]; then
+    DBG=(--debug-file=trace.txt.gz)
+    if [ "$FF" -gt 0 ]; then
+        CFG_DBG=(--trace-after-ff="$DEBUG")
+    else
+        DBG+=(--debug-flags="$DEBUG")
+    fi
+fi
+$LIMIT $GEM5 -q --outdir="$OUT" "${DBG[@]}" "$CONFIG" --cmd="$BINARY" \
+    --options="$OPTS" --rp="$RP" ${LLC_SIZE:+--llc-size=$LLC_SIZE} \
+    --fast-forward="$FF" --warmup="$WARMUP" --measure="$MEASURE" \
+    "${CFG_DBG[@]}" > "$OUT/log.txt" 2>&1

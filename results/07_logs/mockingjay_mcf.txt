@@ -1,0 +1,23 @@
+run 605.mcf_s/Mockingjay_trace
+events 20310778: demand 11708858, writebacks 717589, clean-eviction notices 7884331
+measured demand accesses: trace 9293437, gem5 9293440
+  lines in the trace 346379 (the LLC holds 32768); measured accesses that are a line's first use in the trace 1723
+  gem5 Mockingjay (no bypass)       4593947  (49.43%)
+  model, no bypass                  4592064  (49.41%)
+  model, true bypass                4550645  (48.97%)
+  LRU (+ writebacks, notices)       5159503  (55.52%)
+  OPT (demand only)                 3751121  (40.36%)
+  true bypass removes 41419 misses (0.90% of the no-bypass misses); bypassed fills 3730023
+  misses of the model without bypass that LRU hits, by how Mockingjay had evicted the line:
+    evicted as not reused (ETR = 15)                        353656 (92.2%)
+    evicted as reused furthest (0 <= ETR < 15)               29405 (7.7%)
+    inserted by a writeback (ETR -15), not used since          381 (0.1%)
+    evicted overdue (ETR < 0)                                   18 (0.0%)
+    total 383460; LRU misses that Mockingjay hits: 950899
+  misses of gem5's Mockingjay that LRU hits, by how Mockingjay had evicted the line:
+    evicted as not reused (ETR = 15)                        353811 (92.2%)
+    evicted as reused furthest (0 <= ETR < 15)               29314 (7.6%)
+    inserted by a writeback (ETR -15), not used since          616 (0.2%)
+    evicted overdue (ETR < 0)                                   13 (0.0%)
+    total 383754; LRU misses that Mockingjay hits: 949313
+    (not inserted by a writeback) demand accesses to the set since the line's previous use: <= 16 98.5%, 17-127 1.5%, >= 128 0.0%

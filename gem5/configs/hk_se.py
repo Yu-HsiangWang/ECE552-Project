@@ -15,6 +15,7 @@ import argparse
 import os
 
 import m5
+import m5.debug
 from m5.objects import *
 
 parser = argparse.ArgumentParser()
@@ -32,6 +33,9 @@ parser.add_argument("--measure", type=int, default=0,
                     help="instructions to measure (0: run to completion)")
 parser.add_argument("--mem-size", default="8GB")
 parser.add_argument("--cpu-clock", default="2GHz")
+parser.add_argument("--trace-after-ff", default="",
+                    help="debug flags (comma separated) to turn on when the "
+                    "fast-forward ends; the trace goes to --debug-file")
 args = parser.parse_args()
 
 # LLC replacement policies. SHiP uses the PC signature (SHiP-PC).
@@ -195,6 +199,8 @@ if args.fast_forward > 0:
         raise SystemExit(0)
     m5.switchCpus(system, [(system.cpu, system.switch_cpu)])
     cpu = system.switch_cpu
+    for flag in filter(None, args.trace_after_ff.split(",")):
+        m5.debug.flags[flag].enable()
 
 if args.warmup > 0:
     cpu.scheduleInstStop(0, args.warmup, "warmup done")

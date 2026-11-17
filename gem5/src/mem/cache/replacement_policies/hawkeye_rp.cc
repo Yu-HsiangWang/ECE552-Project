@@ -254,6 +254,9 @@ Hawkeye::update(const std::shared_ptr<ReplacementData>& replacement_data,
     if (pkt->cmd == MemCmd::CleanEvict) {
         stats.cleanEvicts++;
         refreshOnEviction(data);
+        DPRINTF(Hawkeye, "cleanevict set %u way %u addr %#x\n",
+                data->set, data->way,
+                pkt->getAddr() & ~Addr((1ULL << blockShift) - 1));
         return;
     }
 
@@ -271,6 +274,10 @@ Hawkeye::update(const std::shared_ptr<ReplacementData>& replacement_data,
             data->inst = false;
             lastCandidates.clear();
         }
+        DPRINTF(Hawkeye, "writeback set %u way %u addr %#x: %s\n",
+                data->set, data->way,
+                pkt->getAddr() & ~Addr((1ULL << blockShift) - 1),
+                hit ? "hit" : "insert");
         return;
     }
 
@@ -341,16 +348,20 @@ Hawkeye::update(const std::shared_ptr<ReplacementData>& replacement_data,
         lastCandidates.clear();
     }
 
-    DPRINTF(Hawkeye, "%s set %u addr %#x pc %#x: %s, rrpv %u\n",
-            hit ? "hit" : "fill", set, addr, pc,
-            friendly ? "friendly" : "averse", data->rrpv);
+    DPRINTF(Hawkeye, "%s set %u addr %#x pc %#x: %s, rrpv %u, way %u, "
+            "ctr %u, inst %d\n", hit ? "hit" : "fill", set, addr, pc,
+            friendly ? "friendly" : "averse", data->rrpv, data->way,
+            counters[crcHash(pc) % predictorEntries], inst ? 1 : 0);
 }
 
 void
 Hawkeye::invalidate(const std::shared_ptr<ReplacementData>& replacement_data)
 {
-    std::static_pointer_cast<HawkeyeReplData>(replacement_data)->valid =
-        false;
+    auto data = std::static_pointer_cast<HawkeyeReplData>(replacement_data);
+    if (data->valid) {
+        DPRINTF(Hawkeye, "invalidate set %u way %u\n", data->set, data->way);
+    }
+    data->valid = false;
 }
 
 void
@@ -386,11 +397,19 @@ Hawkeye::getVictim(const ReplacementCandidates& candidates) const
 {
     assert(!candidates.empty());
     lastCandidates = candidates;
+    for (const auto &c : candidates) {
+        auto d = std::static_pointer_cast<HawkeyeReplData>(
+            c->replacementData);
+        d->set = c->getSet();
+        d->way = c->getWay();
+    }
 
     for (const auto &c : candidates) {
         if (!std::static_pointer_cast<HawkeyeReplData>(
                 c->replacementData)->valid) {
             stats.invalidVictims++;
+            DPRINTF(Hawkeye, "victim set %u way %u: invalid\n",
+                    c->getSet(), c->getWay());
             return c;
         }
     }

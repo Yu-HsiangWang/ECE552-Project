@@ -64,7 +64,7 @@
 - `gem5/scripts/build_spec.sh <bench>...`：照課程腳本的方式編 SPEC 執行檔（gcc_s 的執行檔叫 sgcc）。
 - `gem5/scripts/run_all_spec.sh [ff] [warmup] [measure] [tag]`：6 個測項 × 6 種策略，同時跑 7 組。
 - `tools/collect_stats.py <out> <tag>`：整理 LLC MPKI、IPC、相對 LRU 的 miss 減少與加速比。
-- `gem5/scripts/run_spec.sh <bench> <policy> [fast_forward] [warmup] [measure]`：在 EC2 上跑一個 SPEC2017 測項，輸出到 `~/hawkeye/out/<bench>/<policy>[_$TAG]/`。
+- `gem5/scripts/run_spec.sh <bench> <policy> [fast_forward] [warmup] [measure]`：在 EC2 上跑一個 SPEC2017 測項，輸出到 `~/hawkeye/out/<bench>/<policy>[_$TAG]/`。`LLC_SIZE=1MB` 改 LLC 大小；`DEBUG=<flag>` 另存 `trace.txt.gz`（有 fast-forward 時從 fast-forward 結束才開始記）。
 - 10-29 實測：mcf 在 O3CPU 上約每秒 25 萬條指令，6000 萬條約 5 分鐘，記憶體約 115 MB（可同時跑 7 組）。只暖身 1000 萬條時 LLC miss 率 97.6%，還在初始化階段，所以要 fast-forward。
 - EC2 上的路徑：`~/hawkeye/configs`、`~/hawkeye/scripts`（從這裡 scp 上去）。
 
@@ -85,11 +85,19 @@
 - `python3 tools/hawkeye_ref.py check <gem5 log>`：讀 `--debug-flags=Hawkeye` 的 gem5 輸出，用 Python 重算 OPTgen 並逐筆比對標籤，另外算同一串 LLC 存取在 LRU 與 Belady OPT 下的 miss 率。
 - `python3 tools/mockingjay_ref.py check <gem5 log(.gz)>`：讀 `--debug-flags=Mockingjay` 的輸出，用 gem5 的存取順序驅動模型，逐筆比對每個 victim 與 ETR。
 - `python3 tools/combine_results.py`：把各次 SPEC 結果合併成 `results/06_all_policies.csv`（三種 LLC 大小 × 所有策略）。
+- `python3 tools/hawkeye_ref.py replay <gem5 log(.gz)> [--inst-friendly]`：用 gem5 的事件順序（demand、寫回、CleanEvict、invalidate、victim）驅動整個 Hawkeye 模型，逐筆比對 OPTgen 標籤、計數器、預測、RRPV 與 victim。`--inst-friendly` 對應 HawkeyeI。
+- `python3 tools/spec_trace.py mockingjay|hawkeye <run 目錄> [--sets N]`：SPEC LLC trace 的離線分析（Mockingjay 真正 bypass 與不 bypass、LRU、OPT 的 miss，以及多出的 miss 是怎麼被淘汰的；Hawkeye 的預測和 OPT 比對）。1 MB 用 `--sets 1024`，4 MB 用 `--sets 4096`。
+- `python3 tools/collect_micro.py 6:<dir> 20:<dir> --csv <file>`：把微基準各輪數、各策略的 stats 整理成一個 CSV。
 
 ## 微基準（`tools/microbench/`）
 
 - `llc_patterns.c`：`fit`（1 MB，放得下）、`thrash`（3 MB，LRU 全 miss）、`mix`（1 MB 重用陣列＋24 MB 串流），每種印 checksum 供比對程式結果。
 - `run_micro.sh`：在 EC2 上用六種策略各跑三種模式，輸出到 `~/hawkeye/micro/<pattern>/<policy>/`。`PASSES=20` 改輪數（輸出到 `micro_p20/`），`DEBUG=Mockingjay` 另存 debug trace。
+
+## 期末補跑（`gem5/scripts/run_final.sh`，11-17）
+
+- 一次跑完期末前要補的實驗：6 輪微基準加 trace、SPEC 從頭 3000 萬條加 trace、SPEC 正式設定加 LLC trace（`--trace-after-ff`，fast-forward 結束才開始記）、20 輪微基準九種策略。完成的工作會跳過。
+- 結果與分析：`results/07_final_runs.md`。
 
 ## 進度紀錄
 
@@ -104,3 +112,8 @@
 - 11-11：status report 定稿，併入組員的修改（用詞不絕對、Mockingjay 結果標明來自模型、PC 說明、分工寫各人已完成的部分）。
 - 11-12（Endong，`mockingjay` 分支）：Mockingjay gem5 實作、`check` 在三個微基準 0 不一致、微基準 6／20 輪、SPEC 2 MB 六個測項＋1／4 MB 三個測項（含 MockingjayI）。
 - 11-14：審查後快轉合併進 main；統整所有策略的結果（`results/06_mockingjay_gem5.md`、`06_all_policies.csv`）。
+- 11-17：期末前的實驗全部補齊（`run_final.sh`），詳見 `results/07_final_runs.md`。
+  - Hawkeye 逐筆比對（OPTgen 標籤、計數器、預測、RRPV、victim）在三個微基準與 gcc、omnetpp 上 0 不一致。
+  - Mockingjay 在 SPEC 上也 0 不一致；Endong 的結果在另一台 EC2 逐格重現。
+  - 九種策略的 20 輪微基準（`results/07_micro.csv`）。
+  - SPEC LLC trace 離線分析：不能 bypass 的代價（只有 mcf 4 MB 明顯，4.7%）、xalancbmk 4 MB 的損失、Hawkeye 與 Mockingjay 在 omnetpp 的損失。

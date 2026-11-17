@@ -1,0 +1,34 @@
+run 620.omnetpp_s/Hawkeye_trace
+measured demand accesses: trace 1243039, gem5 1242941
+  gem5 Hawkeye misses           165440 (13.31%)
+  LRU (+ writebacks, notices)   137455 (11.06%)
+  OPT (demand only)             136265 (10.96%)
+  Hawkeye prediction vs OPT's decision (measured accesses):
+    data: 1054514 accesses, agree 88.2%; averse but OPT keeps 44687 (4.2%), friendly but OPT evicts 80094 (7.6%)
+      OPT keeps 908934 (86.2%); Hawkeye predicts friendly 944341
+    inst: 188525 accesses, agree 85.7%; averse but OPT keeps 25171 (13.4%), friendly but OPT evicts 1829 (1.0%)
+      OPT keeps 186406 (98.9%); Hawkeye predicts friendly 163064
+  misses of gem5's Hawkeye that LRU hits, by what Hawkeye last did with the line:
+    data: 17899 (LRU misses that Hawkeye hits: 316)
+      predicted averse, OPT keeps it              15374 (85.9%)
+      inserted by a writeback                      2505 (14.0%)
+      predicted friendly, OPT keeps it               20 (0.1%)
+      of the 'predicted averse' ones, 8405 come from PCs that never access a sampled set in the trace
+      demand accesses to the set since the line's previous use: <= 16 85.8%, 17-127 14.2%, >= 128 0.1%
+    inst: 10525 (LRU misses that Hawkeye hits: 123)
+      predicted averse, OPT keeps it              10521 (100.0%)
+      inserted by a writeback                         3 (0.0%)
+      predicted friendly, OPT keeps it                1 (0.0%)
+      of the 'predicted averse' ones, 9989 come from PCs that never access a sampled set in the trace
+      demand accesses to the set since the line's previous use: <= 16 92.8%, 17-127 7.1%, >= 128 0.0%
+  'averse but OPT keeps' by PC: 589 PCs, top 10 hold 36.0%
+    data pc 0x64052d: 3901 of 20514 accesses; OPT keeps 35%, Hawkeye predicts friendly 45%
+    data pc 0x64b357: 3821 of 50903 accesses; OPT keeps 79%, Hawkeye predicts friendly 87%
+    data pc 0x64b350: 3802 of 51085 accesses; OPT keeps 79%, Hawkeye predicts friendly 90%
+    data pc 0x42fbcb: 2500 of 2524 accesses; OPT keeps 99%, Hawkeye predicts friendly 0%
+    data pc 0x6684ee: 2401 of 2431 accesses; OPT keeps 99%, Hawkeye predicts friendly 0%
+    data pc 0x547f0d: 2237 of 2255 accesses; OPT keeps 99%, Hawkeye predicts friendly 0%
+    data pc 0x4bbd67: 1725 of 1747 accesses; OPT keeps 99%, Hawkeye predicts friendly 0%
+    data pc 0x4c2e70: 1693 of 1751 accesses; OPT keeps 98%, Hawkeye predicts friendly 0%
+    data pc 0x64b570: 1551 of 124941 accesses; OPT keeps 86%, Hawkeye predicts friendly 98%
+    data pc 0x64b577: 1535 of 124607 accesses; OPT keeps 86%, Hawkeye predicts friendly 97%

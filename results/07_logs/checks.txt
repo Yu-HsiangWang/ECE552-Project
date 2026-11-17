@@ -1,0 +1,131 @@
+== Hawkeye replay micro fit
+  OPTgen labels                                3074
+  demand fill                                  17343
+  demand hit                                   98348
+  victims invalid                              17343
+  writeback hit                                110999
+  mismatches: 0
+== HawkeyeI replay micro fit
+  OPTgen labels                                3074
+  demand fill                                  17343
+  demand hit                                   98348
+  victims invalid                              17343
+  writeback hit                                110999
+  mismatches: 0
+== Mockingjay check micro fit
+  demand fill      17343
+  demand hit       98348
+  victims          17343
+  writeback hits   110999
+  RDP updates 1538, detrains 0
+  mismatches: 0
+== Hawkeye replay micro thrash
+  OPTgen labels                                9218
+  demand fill                                  165951
+  demand hit                                   179118
+  invalidations                                254872
+  victims averse                               245677
+  victims invalid                              32768
+  victims oldest friendly                      9195
+  writeback hit                                218684
+  writeback insert                             121689
+  mismatches: 0
+== HawkeyeI replay micro thrash
+  OPTgen labels                                9218
+  demand fill                                  165951
+  demand hit                                   179118
+  invalidations                                254872
+  victims averse                               245677
+  victims invalid                              32768
+  victims oldest friendly                      9195
+  writeback hit                                218684
+  writeback insert                             121689
+  mismatches: 0
+== Mockingjay check micro thrash
+  demand fill      201159
+  demand hit       143909
+  invalidations    256731
+  victims          289499
+  writeback fills  88340
+  writeback hits   252033
+  RDP updates 4608, detrains 14
+  mismatches: 0
+== Hawkeye replay micro mix
+  OPTgen labels                                1853
+  demand fill                                  796465
+  demand hit                                   105691
+  invalidations                                1513747
+  victims averse                               1501501
+  victims invalid                              32768
+  victims oldest friendly                      12246
+  writeback hit                                147400
+  writeback insert                             750050
+  mismatches: 0
+== HawkeyeI replay micro mix
+  OPTgen labels                                1853
+  demand fill                                  796466
+  demand hit                                   105691
+  invalidations                                1513749
+  victims averse                               1501502
+  victims invalid                              32768
+  victims oldest friendly                      12247
+  writeback hit                                147400
+  writeback insert                             750051
+  mismatches: 0
+== Mockingjay check micro mix
+  demand fill      870759
+  demand hit       31405
+  invalidations    1314613
+  victims          1347381
+  writeback fills  476622
+  writeback hits   420827
+  RDP updates 1281, detrains 10261
+  mismatches: 0
+== Hawkeye replay 502.gcc_r (30M from start)
+  OPTgen labels                                1333
+  demand fill                                  63473
+  demand hit                                   35608
+  invalidations                                33291
+  victims averse                               9447
+  victims invalid                              32768
+  victims oldest friendly                      23844
+  writeback hit                                57705
+  writeback insert                             2586
+  mismatches: 0
+== HawkeyeI replay 502.gcc_r (30M from start)
+  OPTgen labels                                1337
+  demand fill                                  62563
+  demand hit                                   36526
+  invalidations                                32131
+  victims averse                               7699
+  victims invalid                              32768
+  victims oldest friendly                      24432
+  writeback hit                                57988
+  writeback insert                             2336
+  mismatches: 0
+== Mockingjay check 502.gcc_r (30M from start)
+  demand fill      62699
+  demand hit       36209
+  invalidations    29939
+  victims          62707
+  writeback fills  8
+  writeback hits   60131
+  RDP updates 663, detrains 1
+  mismatches: 0
+== Hawkeye replay 620.omnetpp_s (30M from start)
+  OPTgen labels                                430
+  demand fill                                  25737
+  demand hit                                   14531
+  invalidations                                59
+  victims invalid                              25678
+  victims oldest friendly                      59
+  writeback hit                                19357
+  mismatches: 0
+== Mockingjay check 620.omnetpp_s (30M from start)
+  demand fill      25737
+  demand hit       14531
+  invalidations    59
+  victims          25737
+  writeback hits   19357
+  RDP updates 209, detrains 0
+  mismatches: 0

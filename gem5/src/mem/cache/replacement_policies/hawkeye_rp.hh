@@ -59,9 +59,12 @@ class Hawkeye : public Base
         bool valid;
         /** Inserted by an instruction fetch (for the statistics only). */
         bool inst;
+        /** Position in the cache, learned in getVictim (for the log). */
+        unsigned set;
+        unsigned way;
 
         HawkeyeReplData(unsigned max_rrpv)
-          : rrpv(max_rrpv), pc(0), valid(false), inst(false)
+          : rrpv(max_rrpv), pc(0), valid(false), inst(false), set(0), way(0)
         {}
     };
 

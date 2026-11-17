@@ -258,6 +258,9 @@ Mockingjay::update(const std::shared_ptr<ReplacementData>& replacement_data,
     // access.
     if (pkt->cmd == MemCmd::CleanEvict) {
         stats.cleanEvicts++;
+        DPRINTF(Mockingjay, "MJ cleanevict set %u way %u addr %#x\n",
+                data->set, data->way,
+                pkt->getAddr() & ~Addr((1ULL << log2Block) - 1));
         return;
     }
 

@@ -10,12 +10,21 @@
       compares every OPT hit/miss label with gem5's. Also reports the miss
       rates of LRU and Belady's OPT on the same access stream.
 
+  python3 hawkeye_ref.py replay <gem5 log> [--inst-friendly] [...]
+      Drives a full Python Hawkeye (OPTgen, sampler, predictor, RRPVs and
+      victim choice) with gem5's own sequence of policy events (fills and
+      hits in the ways gem5 used, writebacks, invalidations) and compares
+      every OPTgen label, prediction, counter value, RRPV and victim.
+      Needs the log format of hawkeye_rp.cc from 11-17 (way, ctr, inst).
+      --inst-friendly checks HawkeyeI.
+
 OPTgen here follows hawkeye_rp.cc (and the authors' CRC2 code): a 128-entry
 occupancy vector per sampled set, a capacity of ways - 2, a 1024-entry timer,
 and a 2800-entry, 8-way sampler tagged by crc(addr >> 12) % 256.
 """
 
 import argparse
+import gzip
 import re
 import sys
 from collections import OrderedDict, defaultdict
@@ -97,9 +106,9 @@ class OptGenModel:
         # sampler set -> {tag: [last_time, pc, lru]}
         self.sampler = defaultdict(dict)
 
-    def access(self, cache_set, addr, pc):
-        """Returns (pc_trained, opt_hit) when a usage interval ends,
-        otherwise None."""
+    def access(self, cache_set, addr, pc, inst=False):
+        """Returns (pc_trained, opt_hit, inst_of_that_entry) when a usage
+        interval ends, otherwise None."""
         occ = self.occupancy[cache_set]
         now = self.timer[cache_set]
         curr = now % self.vector_size
@@ -108,7 +117,7 @@ class OptGenModel:
         result = None
 
         if tag in sset:
-            last_time, last_pc, lru = sset[tag]
+            last_time, last_pc, lru, last_inst = sset[tag]
             elapsed = (now + self.timer_size - last_time) % self.timer_size
             opt_hit = False
             if elapsed <= self.vector_size:
@@ -122,7 +131,7 @@ class OptGenModel:
                 if opt_hit:
                     for i in idx:
                         occ[i] += 1
-            result = (last_pc, opt_hit)
+            result = (last_pc, opt_hit, last_inst)
             for other in sset.values():
                 if other[2] < lru:
                     other[2] += 1
@@ -134,10 +143,10 @@ class OptGenModel:
                         break
             for other in sset.values():
                 other[2] += 1
-            sset[tag] = [0, 0, 0]
+            sset[tag] = [0, 0, 0, False]
 
         occ[curr] = 0
-        sset[tag] = [now, pc, 0]
+        sset[tag] = [now, pc, 0, inst]
         self.timer[cache_set] = (now + 1) % self.timer_size
         return result
 
@@ -180,10 +189,14 @@ OPT_RE = re.compile(r"OPTgen set (\d+) addr (0x[0-9a-f]+): reuse after \d+, "
                     r"OPT (hit|miss), train pc (0x[0-9a-f]+|0)")
 
 
+def open_log(path):
+    return gzip.open(path, "rt") if path.endswith(".gz") else open(path)
+
+
 def check(args):
     accesses = []   # (set, addr, pc) for every demand access, in order
     gem5_labels = []  # (set, addr, pc_trained, opt_hit) in order
-    with open(args.log) as f:
+    with open_log(args.log) as f:
         for line in f:
             m = OPT_RE.search(line)
             if m:
@@ -225,6 +238,179 @@ def check(args):
     return 1 if mismatches else 0
 
 
+# ----------------------------------------------------------------------
+# replay: the whole policy, driven by gem5's event sequence
+# ----------------------------------------------------------------------
+
+ACC_RE = re.compile(
+    r"(fill|hit) set (\d+) addr (0x[0-9a-f]+|0) pc (0x[0-9a-f]+|0): "
+    r"(friendly|averse), rrpv (\d+), way (\d+), ctr (\d+), inst (\d)")
+VICTIM_RE = re.compile(r"victim set (\d+) way (\d+): (invalid|averse|oldest friendly)")
+WB_RE = re.compile(r"writeback set (\d+) way (\d+) addr (0x[0-9a-f]+|0): (insert|hit)")
+INVAL_RE = re.compile(r"invalidate set (\d+) way (\d+)")
+
+
+class HawkeyeModel:
+    """hawkeye_rp.cc with the default parameters (CRC2 configuration)."""
+
+    def __init__(self, sets, ways, sampled_sets=64, predictor_entries=2048,
+                 counter_bits=5, rrpv_bits=3, inst_friendly=False):
+        self.sets, self.ways = sets, ways
+        self.stride = sets // sampled_sets
+        self.entries = predictor_entries
+        self.counter_max = (1 << counter_bits) - 1
+        self.threshold = (self.counter_max + 1) // 2
+        self.counters = [self.threshold] * predictor_entries
+        self.max_rrpv = (1 << rrpv_bits) - 1
+        self.inst_friendly = inst_friendly
+        self.og = OptGenModel(capacity=ways - 2, vector_size=8 * ways)
+        self.blocks = [[None] * ways for _ in range(sets)]
+        self.rrpv = [[self.max_rrpv] * ways for _ in range(sets)]
+        self.pc = [[0] * ways for _ in range(sets)]
+        self.inst = [[False] * ways for _ in range(sets)]
+        self.last_victim_set = None
+
+    def sampled(self, s):
+        return (s % self.stride) == ((s // self.stride) % self.stride)
+
+    def index(self, pc):
+        return crc_hash(pc) % self.entries
+
+    def train(self, pc, friendly):
+        i = self.index(pc)
+        c = self.counters[i]
+        if friendly and c < self.counter_max:
+            self.counters[i] = c + 1
+        elif not friendly and c > 0:
+            self.counters[i] = c - 1
+
+    def victim(self, s):
+        """Returns (way, kind) as getVictim() would, detraining on a
+        friendly victim in a sampled set."""
+        self.last_victim_set = s
+        row = self.blocks[s]
+        if None in row:
+            return row.index(None), "invalid"
+        rr = self.rrpv[s]
+        for w in range(self.ways):
+            if rr[w] == self.max_rrpv:
+                return w, "averse"
+        w = max(range(self.ways), key=lambda x: (rr[x], x))
+        if self.sampled(s) and not (self.inst_friendly and self.inst[s][w]):
+            self.train(self.pc[s][w], False)
+        return w, "oldest friendly"
+
+    def demand(self, s, w, addr, pc, hit, inst):
+        """A fill or a hit in way w. Returns (OPTgen label or None,
+        friendly, counter value, new RRPV)."""
+        label = None
+        if self.sampled(s):
+            r = self.og.access(s, addr, pc, inst)
+            if r is not None:
+                label = (s, addr, r[0], r[1])
+                if not (self.inst_friendly and r[2]):
+                    self.train(r[0], r[1])
+        ctr = self.counters[self.index(pc)]
+        friendly = (self.inst_friendly and inst) or ctr >= self.threshold
+        if not hit:
+            self.blocks[s][w] = addr >> 6
+            self.inst[s][w] = inst
+        self.pc[s][w] = pc
+        rr = self.rrpv[s]
+        if not friendly:
+            rr[w] = self.max_rrpv
+        else:
+            rr[w] = 0
+            if not hit and self.last_victim_set == s:
+                others = [x for x in range(self.ways)
+                          if x != w and self.blocks[s][x] is not None]
+                if not any(rr[x] == self.max_rrpv - 1 for x in others):
+                    for x in others:
+                        if rr[x] < self.max_rrpv - 1:
+                            rr[x] += 1
+        if not hit:
+            self.last_victim_set = None
+        return label, friendly, ctr, rr[w]
+
+    def writeback(self, s, w, addr, hit):
+        if not hit:
+            self.blocks[s][w] = addr >> 6
+            self.rrpv[s][w] = self.max_rrpv
+            self.pc[s][w] = 0
+            self.inst[s][w] = False
+            self.last_victim_set = None
+
+
+def replay(args):
+    m = HawkeyeModel(args.sets, args.ways, args.sampled_sets,
+                     inst_friendly=args.inst_friendly)
+    n = defaultdict(int)
+    bad = []
+    pending = []    # gem5's OPTgen labels for the next demand access
+
+    def mismatch(lineno, what, line):
+        n["mismatch " + what] += 1
+        if len(bad) < args.show:
+            bad.append(f"line {lineno}: {what}: {line.strip()}")
+
+    with open_log(args.log) as f:
+        for lineno, line in enumerate(f, 1):
+            g = OPT_RE.search(line)
+            if g:
+                pending.append((int(g.group(1)), int(g.group(2), 16),
+                                int(g.group(4), 16), g.group(3) == "hit"))
+                continue
+            g = ACC_RE.search(line)
+            if g:
+                kind, s, addr = g.group(1), int(g.group(2)), int(g.group(3), 16)
+                pc, w = int(g.group(4), 16), int(g.group(7))
+                hit, inst = kind == "hit", g.group(9) == "1"
+                n["demand " + kind] += 1
+                if hit and m.blocks[s][w] != addr >> 6:
+                    mismatch(lineno, "hit on a line the model does not hold", line)
+                label, friendly, ctr, rrpv = m.demand(s, w, addr, pc, hit, inst)
+                if label is not None:
+                    n["OPTgen labels"] += 1
+                if pending != ([label] if label else []):
+                    mismatch(lineno, "OPTgen label", line)
+                pending = []
+                if friendly != (g.group(5) == "friendly"):
+                    mismatch(lineno, "prediction", line)
+                if ctr != int(g.group(8)):
+                    mismatch(lineno, f"counter (model {ctr})", line)
+                if rrpv != int(g.group(6)):
+                    mismatch(lineno, f"RRPV (model {rrpv})", line)
+                continue
+            g = VICTIM_RE.search(line)
+            if g:
+                s, w = int(g.group(1)), int(g.group(2))
+                want, kind = m.victim(s)
+                n["victims " + kind] += 1
+                if (want, kind) != (w, g.group(3)):
+                    mismatch(lineno, f"victim (model way {want}, {kind})", line)
+                continue
+            g = WB_RE.search(line)
+            if g:
+                s, w, addr = int(g.group(1)), int(g.group(2)), int(g.group(3), 16)
+                hit = g.group(4) == "hit"
+                n["writeback " + g.group(4)] += 1
+                if hit and m.blocks[s][w] != addr >> 6:
+                    mismatch(lineno, "writeback hit on a line the model does not hold", line)
+                m.writeback(s, w, addr, hit)
+                continue
+            g = INVAL_RE.search(line)
+            if g:
+                m.blocks[int(g.group(1))][int(g.group(2))] = None
+                n["invalidations"] += 1
+    total = sum(v for k, v in n.items() if k.startswith("mismatch"))
+    for k in sorted(n):
+        print(f"  {k:<44} {n[k]}")
+    print(f"  mismatches: {total}")
+    for b in bad:
+        print("    " + b)
+    return 1 if total else 0
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
@@ -235,10 +421,20 @@ def main():
     c.add_argument("--ways", type=int, default=16)
     c.add_argument("--sets", type=int, default=2048)
     c.add_argument("--sampled-sets", type=int, default=64)
+    r = sub.add_parser("replay")
+    r.add_argument("log")
+    r.add_argument("--ways", type=int, default=16)
+    r.add_argument("--sets", type=int, default=2048)
+    r.add_argument("--sampled-sets", type=int, default=64)
+    r.add_argument("--inst-friendly", action="store_true",
+                   help="check HawkeyeI (inst_always_friendly)")
+    r.add_argument("--show", type=int, default=10)
     args = p.parse_args()
     if args.cmd == "demo":
         demo()
         return 0
+    if args.cmd == "replay":
+        return replay(args)
     return check(args)
 
 
