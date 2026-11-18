@@ -51,6 +51,11 @@
 - `Learning/01_learning_order.md`：剛接手的人從這裡開始，照五個步驟學。
 - `Learning/02_hawkeye_paper_vs_crc2.md`：論文和作者 CRC2 程式碼的差異，以及我們照哪個做。
 
+## 期末報告
+
+- `FinalReport/ECE552_Final_Report.tex`（IEEEtran conference、11pt、1 吋邊界，照課程規定 4–8 頁，目前 8 頁含參考文獻），用 tectonic 編譯。
+- `FinalReport/fig/make_figs.py`：從 `results/06_all_policies.csv` 產生 Fig. 2（2 MB 各策略的 miss 減少與 IPC），需要 matplotlib。
+
 ## Proposal
 
 - `Proposal/ECE552_Hawkeye_Proposal.tex`（IEEEtran，照老師 98 分範例 Cyclone proposal 的章節），正文 2 頁＋參考文獻第 3 頁。
@@ -117,3 +122,4 @@
   - Mockingjay 在 SPEC 上也 0 不一致；Endong 的結果在另一台 EC2 逐格重現。
   - 九種策略的 20 輪微基準（`results/07_micro.csv`）。
   - SPEC LLC trace 離線分析：不能 bypass 的代價（只有 mcf 4 MB 明顯，4.7%）、xalancbmk 4 MB 的損失、Hawkeye 與 Mockingjay 在 omnetpp 的損失。
+- 11-18：期末報告初稿 `FinalReport/`（8 頁）。
